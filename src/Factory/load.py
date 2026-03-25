@@ -17,7 +17,6 @@ from sklearn.model_selection import train_test_split
 import faulthandler
 import psutil, os
 import cv2
-import traceback
 from src.config.logger import setup_logging
 
 # dataset_path = Path("Dataset")
