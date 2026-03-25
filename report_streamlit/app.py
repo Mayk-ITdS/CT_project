@@ -18,8 +18,8 @@ st.set_page_config(
 # ================= CACHE =================
 @st.cache_data
 def load_data():
-    df = pd.read_csv("data/features.csv")
-    cross = pd.read_csv("data/cross_norm.csv", index_col=0)
+    df = pd.read_csv("report_streamlit/data/features.csv")
+    cross = pd.read_csv("report_streamlit/data/cross_norm.csv", index_col=0)
 
     df["cluster"] = df["cluster"].astype(int)
     df["label"] = df["label"].astype(int)
@@ -730,7 +730,7 @@ elif page == "6. Validation":
 
     st.subheader("2D Slice Validation")
 
-    df_raw = pd.read_csv('data/principal_sharp_only.csv')
+    df_raw = pd.read_csv('report_streamlit/data/principal_sharp_only.csv')
 
     @st.cache_resource
     def compute_pipeline(df):
@@ -813,7 +813,7 @@ elif page == "7. 3D Visualization":
     This step is essential, as local correctness in 2D slices does not guarantee
     global structural coherence.
     """)
-    df_raw = pd.read_csv('data/principal_sharp_only.csv')
+    df_raw = pd.read_csv('report_streamlit/data/principal_sharp_only.csv')
 
     @st.cache_resource
     def compute_pipeline(df):
@@ -919,22 +919,29 @@ To emphasize this difference, the following images were generated from the same 
 
     colx,coly,colz = st.columns([1, 2, 1])
     with colx:
-        show_image("assets/ct1_napari.png", caption="Clustered and Reconstructed Structures CT with mask")
+        show_image("report_streamlit/assets/ct1_napari.png", caption="Clustered and Reconstructed Structures CT with mask")
     with coly:
-        show_image("assets/ct3_maskGT.png",caption="Clustered and reconstructed mask")
+        show_image("report_streamlit/assets/ct3_maskGT.png",caption="Clustered and reconstructed mask")
     with colz:
-        show_image("assets/ct2_napari.png", caption="Grand Truth of the same example")
+        show_image("report_streamlit/assets/ct2_napari.png", caption="Grand Truth of the same example")
 
 
-
+elif page == "Conclusion":
+    st.title("Conclusion")
     st.markdown("""
-    ### Validation Summary
+        ### 
+        
+This project demonstrates how complex volumetric medical data can be transformed into a structured representation suitable for machine learning.
 
-    Both 2D and 3D analyses confirm that the clustering process preserves anatomical structure.
+Through a combination of data engineering, feature extraction, and clustering, it is possible to significantly reduce label complexity while preserving anatomical coherence.
 
-    The reconstructed masks remain spatially consistent with the original CT data,
-    demonstrating that the pipeline successfully transforms the data without loss of structural integrity.
+The results confirm that:
 
-    This validates the entire workflow:
-    from data engineering, through feature representation, to clustering and reconstruction.
-    """)
+- meaningful structures can be reconstructed from raw encoded data,
+- clustering captures spatial organization rather than trivial properties,
+- dimensionality reduction does not necessarily imply loss of structural information.
+
+Beyond its technical aspects, this work highlights the broader impact of data-driven approaches in medical imaging.
+
+Advances in this field contribute directly to improving diagnostic tools and understanding anatomical structures, ultimately supporting better clinical outcomes.
+        """)
