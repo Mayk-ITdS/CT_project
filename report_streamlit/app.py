@@ -926,7 +926,7 @@ To emphasize this difference, the following images were generated from the same 
         show_image("report_streamlit/assets/ct2_napari.png", caption="Grand Truth of the same example")
 
 
-elif page == "Conclusion":
+elif page == "8. Conclusion":
     st.title("Conclusion")
     st.markdown("""
         ### 
