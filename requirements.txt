@@ -1,3 +1,4 @@
+plotly.express
 matplotlib==3.10.8
 napari==0.6.6
 numpy==2.4.3
@@ -9,8 +10,4 @@ pyvista==0.47.1
 scikit_learn==1.8.0
 scipy==1.17.1
 seaborn==0.13.2
-segmentation_models_pytorch==0.5.0
 streamlit==1.55.0
-torch==2.5.1
-tqdm==4.67.3
-plotly.express
