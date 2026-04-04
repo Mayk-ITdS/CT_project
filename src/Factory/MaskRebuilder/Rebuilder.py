@@ -4,9 +4,11 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
-from src.Factory.load import build_records, load_pair_from_ct
 from scipy.ndimage import label
 from sklearn.cluster import KMeans
+
+from src.Factory.dataset.build_dataset import build_records, load_pair_from_ct
+
 HERE = Path(__file__).parent
 principal_path = HERE / "../principal_sharp_only.csv"
 
