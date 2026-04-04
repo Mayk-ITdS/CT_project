@@ -1,4 +1,4 @@
-Dataset/
+src/Dataset/
 *.pt
 *.pth
 *.log
@@ -8,4 +8,5 @@ data/
 .venv/
 .venv310/*
 venv/
+venv310/
 env/

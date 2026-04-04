@@ -1,20 +1,30 @@
+from pathlib import Path
+import os
+import sys
+from PIL import Image
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0,ROOT)
 import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
-import sys
-import os
+
+
 import pyvista as pv
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+
+
 from src.Factory.MaskRebuilder.Rebuilder import global_feature_collection, global_clustering, compute_components_distribution, get_new_masks
-from src.Factory.load import load_pair_from_ct, build_records
+from src.Factory.dataset.build_dataset import build_records
+
 
 # ================= CONFIG =================
 st.set_page_config(
     page_title="Fetal Ossification Analysis",
     layout="wide"
 )
-
+ROOT_DIRECTORY = Path(__file__).parent.parent.resolve()
+HERE = ROOT_DIRECTORY / 'report_streamlit'
 # ================= CACHE =================
 @st.cache_data
 def load_data():
@@ -35,19 +45,17 @@ template = "plotly_dark" if theme else "plotly_white"
 
 # ================= SIDEBAR =================
 page = st.sidebar.radio(
-    "Navigation",
+    "Report Sections",
     [
-        "1. Introduction",
-        "2. Dataset",
-        "3. Data Engineering",
-        "4. Feature Analysis",
-        "5. Clustering",
-        "6. Validation",
-        "7. 3D Visualization",
-        "8. Conclusion"
+        "1. Problem & Dataset",
+        "2. Exploratory Data Analysis",
+        "3. Data Preparation",
+        "4. Model Training",
+        "5. Evaluation & Results",
+        "6. Conclusion & Future Work"
     ]
 )
-if page == "1. Introduction":
+if page == "1. Problem & Dataset":
 
     st.title("1. Fetal Ossification Centers Analysis")
     col1, col2, col3, col4 = st.columns(4)
@@ -124,30 +132,7 @@ if page == "1. Introduction":
 
     st.markdown("---")
 
-    st.subheader("Project Overview")
-
-    fig = px.scatter(
-        df.sample(min(2000, len(df))),
-        x="z",
-        y="y",
-        color="cluster",
-        template=template,
-        title="Spatial distribution of anatomical components"
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.markdown("""
-    The visualization above illustrates the spatial distribution of anatomical components after feature extraction.
-
-    Each point represents an individual structure detected in the CT volumes.  
-    The clustering reveals that components are not randomly distributed, but form coherent spatial groups.
-
-    This observation motivates the use of unsupervised learning as a tool for structural analysis rather than purely predictive modeling.
-    """)
-elif page == "2. Dataset":
-
-    st.title("2. Dataset and Data Complexity")
+    st.title("1.1 Dataset and Data Complexity")
 
     st.markdown("""
         ### Nature of the Data
@@ -283,9 +268,8 @@ elif page == "2. Dataset":
         These operations form the foundation of the pipeline and are described in the next section.
         """)
     # ============================ Data Engineering ================================
-elif page == "3. Data Engineering":
-
-    st.title("3. Data Engineering Pipeline")
+elif page == '2. Exploratory Data Analysis':
+    st.title("2 Data Engineering Pipeline")
 
     st.markdown("""
         ### From Unstructured Medical Files to Usable Data
@@ -295,12 +279,14 @@ elif page == "3. Data Engineering":
 
         The dataset was not provided in a structured format. Instead, it consisted of multiple interdependent files,
         requiring reverse engineering to recover relationships between CT volumes and segmentation masks.
-
-        Without this step, the dataset is unusable for any machine learning task.
+        To construct a usable dataset, relationships between files must be reconstructed programmatically.
+        This requires parsing metadata and identifying valid references to imaging and segmentation data.
+        As a result, dataset construction becomes clearly a **reverse engineering** challange rather than simple loading.
+        **Without this step, the dataset is unusable for any machine learning task.**
         """)
 
     st.markdown("---")
-    st.subheader("Data Structure Complexity")
+    st.subheader("Data Structure Complexity/Variety and Data Types")
 
     st.markdown("""
         The data is distributed across multiple file types:
@@ -313,14 +299,51 @@ elif page == "3. Data Engineering":
 
         Relationships between these files are not explicit and must be reconstructed.
         """)
+    st.image('report_streamlit/assets/path_files_chaos.png',width='content',caption='Unlike standard medical datasets (e.g., DICOM or NIfTI),this dataset does not provide a unified representation, requiring reverse engineering before any analysis can be performed')
+    st.markdown("""
+    The raw dataset is distributed as a collection of loosely structured file paths,
+    without explicit relationships between CT volumes and segmentation masks.
 
+    The left panel shows a .job3 file listing sample-specific metadata paths,
+    while the right panel illustrates the internal structure of an .arterydata file.
+    
+    Notably, the dataset exhibits several inconsistencies:
+    - multiple alternative data sources (e.g., done vs done2),
+    - lack of explicit pairing between CT volumes and masks,
+    - indirect references requiring additional parsing,
+    - inconsistent naming conventions.
+    
+    This structure prevents direct loading of the dataset and necessitates
+    a dedicated reconstruction pipeline. 
+    
+    
+    """)
+    st.caption("""
+        To resolve these inconsistencies, a heuristic file selection strategy is introduced,
+        which dynamically evaluates multiple candidate sources and selects the first valid one.
+        """)
     st.code("""
-    DATA_1:
-    [path/to/ct.rdata]
+    def pick_done_file(sample_path: Path) -> tuple[Path, list[str] | None]:
 
-    MASK_1_0:
-    [mask description]
-    """, language="text")
+    folder = sample_path.parent
+    candidates = [
+        folder / "done.arterydata",
+        folder / "done2.arterydata",
+        sample_path,
+    ]
+
+    uniq = []
+    for c in candidates:
+        if c not in uniq:
+            uniq.append(c)
+
+    for c in uniq:
+        lines = read_lines_if_exists(c)
+        if has_mask_key(lines):
+            return c, lines
+
+    return sample_path, read_lines_if_exists(sample_path)
+    """, language="python")
 
     st.markdown("""
         The lack of a unified structure requires custom parsing logic to extract relevant information.
@@ -336,7 +359,13 @@ elif page == "3. Data Engineering":
         - alternating between background and foreground
         - requiring reconstruction at voxel level
         """)
-
+    st.write("""
+            The encoded sequence contains a header and footer, which must be excluded, cleaned.
+            The remaining values represent alternating runs of foreground and background voxels,
+            requiring iterative reconstruction.
+            A key constraint is that the sum of runs must match the total number of voxels,
+            ensuring data consistency.
+            """,unsafe_allow_html=True)
     st.code("""
     runs = seg[2:-2]
     val = 1
@@ -347,47 +376,81 @@ elif page == "3. Data Engineering":
         idx += length
         val ^= 1
     """, language="python")
+    col1, col2 = st.columns(2)
 
+    with col1:
+        st.markdown("""
+            The decoding process reconstructs full 3D segmentation masks.
+
+            """,text_alignment='left',width='content')
+
+        st.markdown("---")
+        st.subheader("Reconstruction Pipeline")
+
+        st.markdown("""
+            The complete data engineering pipeline can be summarized as follows:
+            """)
+
+        st.code("""
+        RAW FILES
+           ↓
+        .job3 parsing
+           ↓
+        arterydata extraction
+           ↓
+        file selection (done / done2)
+           ↓
+        RLE decoding (maskSet)
+           ↓
+        volume reconstruction
+           ↓
+        CT + MASK aligned volumes
+        """, language="text")
+
+        st.markdown("""
+            The output of the reconstruction pipeline is a dataset of aligned 3D CT volumes
+            and corresponding segmentation masks, forming the effective ground truth used
+            for subsequent analysis and modeling.
+            
+            Unlike standard medical datasets, where annotations are provided in a structured
+            and directly usable format, the ground truth in this study is the result of an
+            explicit reconstruction process.
+            
+            The figure below illustrates this transformation: from raw CT data, through
+            decoded segmentation masks, to spatially consistent 3D representations of
+            individual anatomical structures.
+            
+            This representation enables direct volumetric analysis and serves as the basis
+            for all downstream tasks.
+            """)
+    col1,col2,col3 = st.columns(3)
+
+    with col1:
+        st.image('report_streamlit/assets/corps1.png',
+                 caption='CT + mask (colors)')
+    with col2:
+        st.image('report_streamlit/assets/corps2.png',caption='Reconstructed CT')
+    with col3:
+        st.image('report_streamlit/assets/corps3.png',caption='Mask Reconstructed')
+    st.caption("""
+    Figure: Reconstructed ground truth obtained from the data engineering pipeline.
+    Top: CT volume with overlaid segmentation structures.
+    Middle: raw CT slice.
+    Bottom: extracted segmentation components visualized in 3D space.
+
+    The visualization demonstrates that anatomical structures are not explicitly
+    encoded in the raw data, but emerge only after reconstruction and alignment.
+    """)
     st.markdown("""
-        The decoding process reconstructs full 3D segmentation masks.
+    It is important to note that this reconstructed ground truth is not perfect.
+    The masks originate from heterogeneous sources and may contain inconsistencies,
+    noise, and class ambiguities.
 
-        A key constraint is that the sum of runs must match the total number of voxels,
-        ensuring data consistency.
-        """)
-
-    st.markdown("---")
-    st.subheader("Reconstruction Pipeline")
-
-    st.markdown("""
-        The complete data engineering pipeline can be summarized as follows:
-        """)
-
-    st.code("""
-    RAW FILES
-       ↓
-    .job3 parsing
-       ↓
-    arterydata extraction
-       ↓
-    file selection (done / done2)
-       ↓
-    RLE decoding (maskSet)
-       ↓
-    volume reconstruction
-       ↓
-    CT + MASK aligned volumes
-    """, language="text")
-
-    st.markdown("""
-        The output of this process is a consistent dataset of aligned 3D volumes,
-        ready for further analysis and modeling.
-
-        This transformation is essential and represents the foundation of the entire system.
-        """)
-
-elif page == "4. Feature Analysis":
-
-    st.title("4. Feature Engineering and Structural Analysis")
+    Therefore, the reconstructed dataset should be interpreted as an operational
+    ground truth, rather than a clinically validated reference.
+    """)
+if page == '3. Data Preparation':
+    st.title("From Structural Analysis to feature engineering")
 
     st.markdown("""
         ### From Voxels to Anatomical Structures
@@ -549,9 +612,7 @@ elif page == "4. Feature Analysis":
         Such representation significantly reduces complexity while preserving essential structural information.
         """)
 
-elif page == "5. Clustering":
-
-    st.title("5. Clustering and Structural Grouping")
+    st.title("Clustering and Structural Grouping")
 
     st.markdown("""
     ### From Feature Space to Anatomical Organization
@@ -694,28 +755,11 @@ elif page == "5. Clustering":
     This result validates the entire pipeline, from data engineering to feature representation and clustering.
     """)
 
-
-
-elif page == "6. Validation":
-    st.title("6. Validation and Reconstruction")
-
-    st.markdown("""
-    ### Validation in Original Voxel Space
-
-    The previous stages operate on transformed representations of the data.
-    However, validation must be performed directly on the original CT volumes.
-
-    This section verifies whether the clustering results remain consistent
-    when projected back into voxel space.
-
-    The goal is to ensure that structural coherence is preserved in real anatomical data.
-    """)
-
     st.markdown("---")
 # ================= 2D VALIDATION =================
-elif page == "6. Validation":
+
     st.write(" VALIDATION PAGE ACTIVE")
-    st.title("6. Validation and Reconstruction")
+    st.title("Validation and Reconstruction")
 
     st.markdown("""
     ### Validation in Original Voxel Space
@@ -723,8 +767,6 @@ elif page == "6. Validation":
     This section verifies whether clustering results remain consistent
     when projected back into voxel space.
     """)
-
-
 
     import plotly.graph_objects as go
 
@@ -801,9 +843,9 @@ elif page == "6. Validation":
 
     st.plotly_chart(fig, use_container_width=True)
     st.markdown("---")
-elif page == "7. 3D Visualization":
 
-    st.subheader("3D Structural Validation")
+    st.title("3D Visualization")
+    st.subheader("Structural Validation")
     st.markdown("""
     The 3D reconstruction provides a global view of anatomical structures.
 
@@ -925,23 +967,315 @@ To emphasize this difference, the following images were generated from the same 
     with colz:
         show_image("report_streamlit/assets/ct2_napari.png", caption="Grand Truth of the same example")
 
+elif page == "4. Model Training":
 
-elif page == "8. Conclusion":
-    st.title("Conclusion")
+    st.title("4. Model Training")
+
     st.markdown("""
-        ### 
+    ### Problem Formulation
+
+    The task is formulated as a multi-class semantic segmentation problem,
+    where each pixel is assigned to a specific ossification center or background.
+
+    The objective is to learn a mapping from a multi-channel input representation
+    (2.5D slices) to a dense pixel-wise classification map.
+    Class Imbalance
+
+    This particular segmentation problem is characterized by **extreme class imbalance**:
+
+    - background: ~99.99% of pixels  
+    - ossification centers: ~0.01%  
+
+    This imbalance leads to:
+    - weak learning signal for foreground classes,
+    - strong bias toward predicting background,
+    - increased risk of false negatives.
+
+    As a result, standard metrics and loss functions become inadequate.
+    """)
+
+    st.markdown("---")
+    st.markdown("### Mathematical Formulation")
+
+    st.latex(r"""
+    f_{\theta}: \mathbb{R}^{C \times H \times W} \rightarrow \mathbb{R}^{K \times H \times W}
+    """)
+
+    st.markdown("""
+    where:
+
+    - C = number of input channels (2.5D slices)  
+    - H, W = spatial dimensions  
+    - K = number of classes  
+
+    The model predicts a probability distribution for each pixel.
+    """)
+    st.markdown("""
+        #### Choice of Loss Function
+
+        The model was trained using a combination of
+        Custom loss function combining 
+        **Cross-Entropy Loss** and **Dice coefficient**
+        As well as a Tversky loss function. 
         
-This project demonstrates how complex volumetric medical data can be transformed into a structured representation suitable for machine learning.
-
-Through a combination of data engineering, feature extraction, and clustering, it is possible to significantly reduce label complexity while preserving anatomical coherence.
-
-The results confirm that:
-
-- meaningful structures can be reconstructed from raw encoded data,
-- clustering captures spatial organization rather than trivial properties,
-- dimensionality reduction does not necessarily imply loss of structural information.
-
-Beyond its technical aspects, this work highlights the broader impact of data-driven approaches in medical imaging.
-
-Advances in this field contribute directly to improving diagnostic tools and understanding anatomical structures, ultimately supporting better clinical outcomes.
+        ##### Cross-Entropy
         """)
+    st.latex(r"""
+        \mathcal{L}_{CE} = - \sum_{i} y_i \log(p_i)
+        """)
+    st.markdown("""
+        - provides stable gradients  
+        - optimizes pixel-wise classification  
+        - ensures global convergence  
+
+        However, it is strongly biased toward dominant classes.
+        """)
+    st.markdown("""
+        ##### Dice Metric
+                """)
+    st.latex(r"""
+    Dice = \frac{2TP}{2TP + FP + FN}
+    """)
+    st.markdown("""
+        Dice coefficient measures the overlap between prediction and ground truth.
+    
+        It is particularly suitable for segmentation tasks with imbalanced classes,
+        as it directly evaluates the quality of detected structures.
+    
+        Unlike accuracy, Dice is sensitive to:
+        - false negatives,
+        - false positives,
+        - spatial overlap.
+    
+        This makes it a more meaningful metric for medical image segmentation.
+        
+        """)
+
+    st.markdown("""
+        ##### Tversky Loss
+        """)
+    st.latex(r"""
+    T = \frac{TP}{TP + \alpha FP + \beta FN}
+    """)
+
+    st.latex(r"""
+    \mathcal{L}_{Tversky} = 1 - T
+        """)
+    st.markdown("""
+        The Tversky index introduces asymmetric penalization of errors.
+        In this work:
+        ** α = 0.3 β = 0.7**
+        which gives us:  
+        - higher penalty for false negatives  
+        - improved sensitivity to small structures  
+
+        This is critical in medical applications, where missing a structure
+        is more severe than over-segmentation.
+
+        #### Combined Objective
+
+        The final loss balances:
+
+        - global stability (Cross-Entropy)  
+        - sensitivity to rare structures (Tversky)  
+        """)
+
+    st.markdown("---")
+    st.markdown("""
+    ### 4.2 Why CNN.
+    
+    CNN donc -> Convolutional Neural Networks were selected due to their ability to capture
+    **spatial dependencies** between neighbouring pixels and local patterns
+    in contrast to classical machine learning models such as Random Forests or MLPs,
+    CNNs preserve the spatial arrangement of pixels and exploit local context through convolutional filters.
+
+
+    This is very important in medical imaging, where the meaning of a pixel, which defines 
+    anatomical structures, depends not only
+    on its intensity but also on its sorroundings.
+    
+    The use of convolution enables:
+    - translation-invariant feature extraction,
+    - detection of local patterns,
+    - hierarchical representation learning.
+        These characteristics make CNNs particularly well-suited for segmentation tasks involving
+        small, irregular, and spatially dependent anatomical structures.
+    """)
+
+    st.markdown("---")
+
+    st.markdown("""
+    ### Model Architecture
+
+    A **2.5D U-Net architecture with a ResNet34 encoder** was employed.
+    
+    The input consists of 5 adjacent slices, allowing the model to incorporate
+    limited volumetric context without the computational cost of full 3D CNNs.
+    The model is based on a U-Net architecture with a ResNet34 encoder.
+
+    The encoder processes the input through a hierarchy of feature maps with increasing depth:
+    64 → 128 → 256 → 512 channels, enabling progressive abstraction of spatial features.
+    
+    Unlike standard implementations, the model operates on a **5-channel input**, corresponding
+    to a 2.5D representation of adjacent CT slices.
+    
+    The decoder consists of five convolution layers, each performing:
+    
+    - upsampling
+    - feature fusion via skip connections,
+    - convolutional refinement.
+    A  key distinction between U-Net and conventional convolutional architectures is
+    **Skip connections** feature which concatenates encoder and decoder feature-layers, preserving spatial detail 
+    by directly passing high-resolution features
+    from the encoder to the decoder,
+    that would otherwise be lost during downsampling. 
+    
+    The final segmentation head maps the feature representation to a 7-class output
+    using a convolutional layer.
+    
+    The U-Net structure enables:
+    - multi-scale feature extraction,
+    - preservation of spatial detail via skip connections,
+    - accurate localization of small anatomical structures.
+    
+    The use of 2.5D input increases the receptive field along the depth dimension
+    without requiring full 3D convolution This provides additional contextual information 
+    while optimising computational efficiency, while the ResNet encoder improves gradient flow 
+    and stabilizes training through residual connections.
+    """)
+    st.image("report_streamlit/assets/my_unet_diagram.png",width=700)
+    st.caption("U-Net architecture (adapted from Ronneberger et al., 2015)")
+    st.markdown("---")
+
+    st.markdown("""
+    ### Training Strategy
+
+    The model was trained **from scratch**, without pre-trained weights.
+
+    This decision was motivated by the strong domain mismatch between natural images
+    and CT data, particularly in terms of intensity distribution and anatomical structure.
+
+    Training from scratch allows the model to learn representations
+    specific to fetal ossification patterns.
+    """)
+
+    st.markdown("---")
+
+    st.markdown("""
+    ### Class Imbalance
+
+    The segmentation problem is characterized by **extreme class imbalance**:
+
+    - background: ~99.99% of pixels  
+    - ossification centers: ~0.01%  
+
+    This imbalance leads to:
+    - weak learning signal for foreground classes,
+    - strong bias toward predicting background,
+    - increased risk of false negatives.
+
+    As a result, standard metrics and loss functions become inadequate.
+    """)
+
+    st.markdown("---")
+
+
+
+    st.markdown("""
+    ### Why Accuracy is Not Used
+
+    Accuracy is not a suitable metric in this setting.
+
+    Due to extreme class imbalance, a trivial model predicting only background
+    would achieve near-perfect accuracy, while completely failing to detect
+    any anatomical structures.
+
+    Therefore, overlap-based metrics such as Dice are preferred.
+    """)
+
+    st.markdown("---")
+elif page == "5. Evaluation & Results":
+
+    st.title("5. Evaluation & Results")
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Train Dice", "0.69")
+    col2.metric("Test Dice", "0.72")
+    col3.metric("Samples", "19,980")
+
+    st.markdown("---")
+
+    st.subheader("Per-case Dice Distribution")
+
+    df_case = pd.read_csv("report_streamlit/data/test_per_case.csv")
+
+    fig = px.histogram(
+        df_case,
+        x="dice",
+        nbins=50,
+        template=template
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("""
+    The distribution shows high variability in segmentation performance,
+    with strong results for typical cases and failures in challenging scenarios.
+    """)
+
+    st.markdown("---")
+
+    st.subheader("Per-class Performance")
+
+    df_class = pd.read_csv("report_streamlit/data/test_per_class.csv")
+
+    fig = px.bar(
+        df_class,
+        x="class",
+        y="dice",
+        template=template
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("""
+    Performance varies significantly across classes, reflecting differences
+    in size, visibility and frequency.
+    """)
+
+    st.markdown("---")
+
+    st.subheader("Difficulty Distribution")
+
+    meta = pd.read_csv("report_streamlit/data/meta_index_full.csv")
+
+    fig = px.histogram(
+        meta,
+        x="real_fill",
+        nbins=50,
+        template=template,
+        labels={"real_fill": "Real Fill"}
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("""
+    The dataset is dominated by difficult samples, confirming the challenging nature of the task.
+    """)
+
+    st.markdown("---")
+
+    st.subheader("Key Insight")
+
+    st.markdown("""
+    The primary challenge is not distinguishing between anatomical structures,
+    but detecting their presence in highly sparse data.
+    """)
+elif page == "6. Conclusion & Future Work":
+    st.markdown("""
+    ### Future Work
+
+    Future improvements may include:
+
+    - full 3D modeling,
+    - improved detection of small structures,
+    - integration of anatomical priors,
+    - expansion of dataset.
+    """)

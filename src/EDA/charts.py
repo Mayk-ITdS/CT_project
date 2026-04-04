@@ -1,3 +1,7 @@
+import os
+import sys
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, ROOT)
 from pathlib import Path
 import seaborn as sns
 import numpy as np
@@ -5,13 +9,16 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.ndimage import label
 import plotly.express as px
+
+from src.Factory.dataset.build_dataset import build_records, load_pair_from_ct
+
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 pd.set_option('display.max_colwidth', None)
 
 from src.Factory.MaskRebuilder.Rebuilder import global_feature_collection, global_clustering, \
     compute_components_distribution, get_new_masks
-from src.Factory.load import build_records, load_pair_from_ct
+
 
 HERE = Path(__file__).parent
 df = pd.read_csv("../Extract/principal_sharp_only.csv")
