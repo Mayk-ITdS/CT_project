@@ -2,6 +2,10 @@ from pathlib import Path
 import os
 import sys
 from PIL import Image
+from cyclopts.help.formatters import markdown
+from docutils.nodes import caption
+from matplotlib import pyplot as plt
+
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0,ROOT)
 import streamlit as st
@@ -30,15 +34,19 @@ HERE = ROOT_DIRECTORY / 'report_streamlit'
 def load_data():
     df = pd.read_csv("report_streamlit/data/features.csv")
     cross = pd.read_csv("report_streamlit/data/cross_norm.csv", index_col=0)
-
+    df_raw = pd.read_csv("report_streamlit/data/eda_full.csv")
     df["cluster"] = df["cluster"].astype(int)
     df["label"] = df["label"].astype(int)
     df["log_size"] = np.log1p(df["size"])
 
-    return df, cross
+    return df, cross, df_raw
 
+def clamp_format(x):
+    if float(x).is_integer():
+        return str(int(x))
+    return f"{x:.4f}".rstrip("0").rstrip(".")
 
-df, cross = load_data()
+df, cross, df_raw = load_data()
 # ================= THEME =================
 theme = st.sidebar.toggle("Dark mode", True)
 template = "plotly_dark" if theme else "plotly_white"
@@ -87,175 +95,81 @@ if page == "1. Problem & Dataset":
     Combined with the limited and biased nature of the dataset, this makes reliable segmentation particularly difficult and pushes the problem beyond standard medical image segmentation tasks.
     """)
 
-
-
-    st.markdown(
-        "**This context directly motivates the design of the data engineering and modeling pipeline presented below.**")
-
     st.markdown("---")
 
     st.markdown("""
     ### From Raw Data to Anatomical Structure Representation
+
+    The dataset used in this study consists of volumetric CT scans of fetal pelvic regions, accompanied by segmentation masks describing ossification centers.
+
+    In total:
+    - 89 CT volumes are available (based on eda_full.csv)
+    - Each case includes:
+      - a CT scan (in .rdata format)
+      - a corresponding segmentation mask
+      - in some cases, multiple variants of the same scan (e.g., sharp vs blurred)
     
-    A key objective of this project was not only to analyze the data, but to reconstruct meaningful anatomical representations from raw volumetric inputs.
-
-    The original dataset does not provide directly usable structures. Instead, segmentation masks are encoded in compressed formats and must be decoded and reconstructed at the voxel level. This process enables the identification of individual anatomical components within each CT volume.
-
-    Each detected component is then transformed into a feature representation, capturing its spatial location and size. This abstraction allows the problem to shift from voxel-level analysis to object-level reasoning.
-
-    Clustering is subsequently applied to group these components into a reduced set of structures. Importantly, this process is not evaluated purely through numerical metrics, but through spatial reconstruction.
-
-    By projecting cluster assignments back into the voxel space, it is possible to visually verify that the resulting structures remain spatially coherent. This demonstrates that the clustering process preserves meaningful anatomical organization, despite a significant reduction in label complexity.
+    This introduces an additional level of complexity, as multiple representations of the same anatomical structure must be considered during data selection.
     
-    This project addresses the challenge of analyzing fetal CT data, where anatomical structures are not directly accessible but must be reconstructed from compressed representations.
+    Unlike standard machine learning datasets, the data is not provided in a structured format.
+    Instead, it is distributed as a compressed archive containing multiple folders and heterogeneous file types.
+    
+    The dataset includes:
+    - raw volumetric data (.rdata)
+    - segmentation masks (.maskSet / .voxelizedSurfaces)
+    - metadata files (.job3, .arterydata)
+    - header files describing volume geometry
+    
+    Importantly, these files are not directly linked in a consistent or explicit manner.
+    
+    As a result, the first step of the analysis is not exploratory visualization,
+    but reconstruction of the dataset itself.
+    
+    This involves:
+    - identifying valid CT–mask pairs,
+    - resolving inconsistencies between multiple data sources,
+    - decoding compressed segmentation formats,
+    - and aligning volumetric data into consistent representations.
+    
+    Only after this reconstruction step a meaningful exploratory data analysis shall be performed.
+    
+    Additionally, the original dataset contains 55 distinct segmentation labels,
+    which are not directly aligned with anatomical structures and exhibit inconsistencies across samples.
+    
+    This further motivates the need for structural analysis and label simplification,
+    introduced later in the pipeline.
 
-    The objective is not limited to segmentation. Instead, the pipeline focuses on transforming raw volumetric data into a structured representation of anatomical components, enabling higher-level reasoning about their spatial organization.
-
-    The workflow integrates:
-    - custom data engineering for decoding medical formats,
-    - feature-based representation of anatomical structures,
-    - unsupervised learning to identify structural patterns.
-
-    This approach shifts the problem from voxel-level processing to object-level analysis.
     """)
 
     st.markdown("---")
 
-    st.subheader("Key Metrics")
+    st.subheader("Dataset Summary")
+
+    summary_df = pd.DataFrame({
+        "Metric": [
+            "Number of CT volumes",
+            "Average mask coverage",
+            "Number of distinct classes ( initially )",
+            "Min CT intensity",
+            "Max CT intensity",
+            "Mean CT intensity"
+        ],
+        "Value": [
+            df_raw["sample_nr"].nunique(),
+            round(df_raw["coverage"].mean(), 4),
+            int(df["label"].nunique()),
+            int(df_raw["ct_min"].min()),
+            int(df_raw["ct_max"].max()),
+            int(df_raw["ct_mean"].mean())
+        ]
+    })
+    summary_df['Value'] = summary_df['Value'].map(clamp_format)
+
+    st.table(summary_df)
 
     col1, col2, col3, col4 = st.columns(4)
 
-    col1.metric("Total components", len(df))
-    col2.metric("Original labels", df["label"].nunique())
-    col3.metric("Clusters", df["cluster"].nunique())
-    col4.metric("Avg component size", int(df["size"].mean()))
-
     st.markdown("---")
-
-    st.title("1.1 Dataset and Data Complexity")
-
-    st.markdown("""
-        ### Nature of the Data
-
-        The dataset consists of volumetric CT scans of fetal pelvic regions, accompanied by segmentation masks describing ossification centers.
-
-        Unlike standard machine learning datasets, the data is not provided in a structured format. Instead, it is distributed across multiple files, requiring reconstruction before it can be used.
-
-        Key challenges include:
-        - absence of a unified tabular structure,
-        - compressed mask representations (RLE),
-        - indirect relationships between CT volumes and segmentation masks.
-        """)
-
-    st.markdown("---")
-
-    st.subheader("Dataset Characteristics")
-
-    col1, col2, col3 = st.columns(3)
-
-    col1.metric("Total components", len(df))
-    col2.metric("Unique anatomical labels", df["label"].nunique())
-    col3.metric("Avg components per scan", int(df.groupby("case_id").size().mean()))
-
-    st.markdown("---")
-
-    st.subheader("Distribution of Anatomical Components")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        fig = px.histogram(
-            df,
-            x="log_size",
-            nbins=50,
-            template=template,
-            title="Distribution of component sizes (log scale)"
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-    with col2:
-        fig = px.histogram(
-            df.groupby("case_id").size().reset_index(name="count"),
-            x="count",
-            nbins=30,
-            template=template,
-            title="Number of components per CT scan"
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-    st.markdown("""
-        ### Interpretation
-
-        The distribution of component sizes reveals a strong imbalance between small and large anatomical structures.  
-        This is characteristic of medical imaging data, where fine-grained structures coexist with larger regions.
-
-        Additionally, the number of components per scan varies significantly, indicating heterogeneity across cases.
-
-        These observations highlight the necessity of a dedicated data engineering pipeline before applying machine learning methods.
-        """)
-    col1,col2,col3,col4 = st.columns(4)
-    col1.metric("Total samples", df["case_id"].nunique())
-    col2.metric("Total components", len(df))
-    col3.metric("Avg components / CT", int(df.groupby("case_id").size().mean()))
-    col4.metric("Max components / CT", int(df.groupby("case_id").size().max()))
-    st.subheader("Sample of extracted features")
-    col1, col2, col3, col4 = st.columns(4)
-
-    col1.metric("Mean HU (avg)", int(df["hu_mean"].mean()))
-    col2.metric("Std HU (avg)", int(df["hu_std"].mean()))
-    col3.metric("Min HU", int(df["hu_min"].min()))
-    col4.metric("Max HU", int(df["hu_max"].max()))
-    st.dataframe(
-        df[["case_id", "label", "cluster", "size", "z", "y", "x"]].head(50),
-        use_container_width=True
-    )
-    st.markdown("""
-    ### The dataset exhibits high structural variability across samples.
-    The number of anatomical components varies significantly between CT scans,
-    indicating heterogeneity in the underlying anatomical structures.
-    Additionally, the distribution of component sizes is highly imbalanced,
-    with many small structures and fewer large ones.
-    This complexity makes the dataset challenging and requires a dedicated
-    data engineering pipeline before any modeling step.""")
-    st.markdown("---")
-    st.subheader("CT Intensity Scale (Hounsfield Units)")
-    st.markdown("""
-    CT images are represented using **Hounsfield Units (HU)**, a standardized scale that quantifies the radiodensity of tissues based on X-ray attenuation.
-
-    Unlike typical image representations (e.g. RGB or grayscale values), HU values have a direct physical interpretation:
-
-    - Air: ~ -1000 HU  
-    - Water: 0 HU  
-    - Soft tissue: ~ 30–80 HU  
-    - Bone: 300–1000+ HU  
-
-    This means that each voxel value encodes how much the tissue attenuates X-ray radiation, making the data inherently quantitative rather than purely visual.
-
-    As a result, preprocessing must preserve the physical meaning of these values, while normalization is required for stable model training.
-
-    This dual nature — physical interpretability and numerical variability — adds another layer of complexity to the dataset.
-    """)
-    fig = px.histogram(
-        df,
-        x="hu_mean",
-        nbins=40,
-        template=template,
-        title="Distribution of mean CT intensities"
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.markdown("""
-    ### Interpretation of Intensity Values
-
-    The observed intensity values significantly exceed the standard Hounsfield Unit range typically used in CT imaging.
-
-    This suggests that the data is stored in a transformed or non-normalized format, rather than directly representing calibrated HU values.
-
-    Such behavior is common in raw medical datasets, where intensity scaling or offsets must be accounted for during preprocessing.
-
-    Understanding this discrepancy is essential, as it directly affects how intensity values are interpreted and normalized for further analysis.
-    """)
-    st.subheader("Why Data Engineering is Required")
 
     st.markdown("""
         The dataset cannot be directly used for training due to its structure.
@@ -269,19 +183,23 @@ if page == "1. Problem & Dataset":
         """)
     # ============================ Data Engineering ================================
 elif page == '2. Exploratory Data Analysis':
-    st.title("2 Data Engineering Pipeline")
+    st.title("2.1 Data Reverse Engineering Pipeline")
 
     st.markdown("""
         ### From Unstructured Medical Files to Usable Data
+        Between raw data exploration and dataset construction,
+        an intermediate stage is required, which can be described as **reverse engineering.**
+        
+        **This was in fact the most challenging aspect of this project.**
+       
+        At this stage, the dataset is not yet defined in a usable form.
+        Instead, it exists as a collection of heterogeneous files with implicit and undocumented relationships.
 
-        The most challenging aspect of this project was not model training,
-        but reconstructing usable data from heterogeneous medical files.
-
-        The dataset was not provided in a structured format. Instead, it consisted of multiple interdependent files,
-        requiring reverse engineering to recover relationships between CT volumes and segmentation masks.
-        To construct a usable dataset, relationships between files must be reconstructed programmatically.
-        This requires parsing metadata and identifying valid references to imaging and segmentation data.
-        As a result, dataset construction becomes clearly a **reverse engineering** challange rather than simple loading.
+        Reverse engineering is therefore necessary to:
+        - identify valid data sources,
+        - reconstruct relationships between CT volumes and segmentation masks,
+        - recover structural information from metadata,
+        - and transform raw files into a consistent dataset representation.
         **Without this step, the dataset is unusable for any machine learning task.**
         """)
 
@@ -447,26 +365,257 @@ elif page == '2. Exploratory Data Analysis':
     noise, and class ambiguities.
 
     Therefore, the reconstructed dataset should be interpreted as an operational
-    ground truth, rather than a clinically validated reference.
+    ground truth, rather than a clinically validated reference and nnow is ready for 
+    Exploratory Data Analysis.
+    """)
+    st.markdown("---")
+    st.markdown("""
+    The reconstructed volumes provide the first opportunity to analyze
+    the spatial and structural properties of the dataset.
+    
+    Figure X reveals that ossification centers are:
+    - small relative to the full volume,
+    - spatially sparse,
+    - and highly fragmented.
+    
+    These observations motivate a detailed exploratory data analysis,
+    focusing on spatial distribution, intensity characteristics,
+    and class imbalance.
+    """)
+    st.markdown("---")
+
+    def parse_shape(s):
+        s = s.strip("()")
+        return list(map(int, s.split(',')))
+
+    df_raw[['Z', 'Y', 'X']] = df_raw['ct_shape'].apply(parse_shape).apply(pd.Series)
+    col1, col2 = st.columns(2)
+
+    with col1:
+        fig = px.histogram(
+            df_raw,
+            x="coverage",
+            nbins=40,
+            template=template,
+            title="Mask Coverage",
+        )
+        fig.update_layout(height=300, margin=dict(l=10, r=10, t=40, b=10))
+        st.plotly_chart(fig, use_container_width=True)
+        st.markdown("""
+        The distribution of mask coverage reveals that anatomical structures
+        occupy only a very small fraction of the volumetric space, typically below 2%.
+        This indicates an extreme voxel-level class imbalance, where the vast majority
+        of voxels correspond to background.
+        
+        Such imbalance renders standard metrics such as accuracy uninformative,
+        as trivial background predictions would achieve high scores without detecting
+        any relevant structures. Therefore, overlap-based metrics such as the Dice coefficient
+        are required to properly evaluate segmentation performance.
+        
+        Moreover, the low coverage highlights the geometric sparsity of the problem.
+        Ossification centers are small, spatially dispersed, and fragmented,
+        making their detection significantly more challenging.
+        
+        These characteristics directly influence the design of the data processing pipeline
+        and justify the use of ROI-based sampling and specialized loss functions
+        adapted to highly imbalanced segmentation tasks.
+        """)
+        st.markdown("---")
+    with col2:
+        fig = px.histogram(
+            df_raw,
+            x="ct_mean",
+            nbins=40,
+            template=template,
+            title="CT Mean Intensity",
+        )
+        fig.update_layout(height=300, margin=dict(l=10, r=10, t=40, b=10))
+        st.plotly_chart(fig, use_container_width=True)
+        st.markdown("""
+        The distribution of mean CT intensities reveals significant variability across samples,
+        indicating that the dataset is not standardized in terms of intensity scale.
+        
+        Moreover, the observed values do not correspond to typical Hounsfield Units,
+        suggesting that the data is stored in a transformed or preprocessed representation.
+        As a result, absolute intensity values cannot be directly interpreted
+        in a clinical context.
+        
+        This variability reduces comparability between samples and introduces
+        an additional source of complexity for the learning process.
+        Without appropriate normalization, the model would be prone to learning
+        scan-specific intensity patterns rather than generalizable anatomical features.
+        
+        Therefore, per-sample normalization is required to standardize the input space
+        and enable robust learning across heterogeneous data.
+        """)
+        st.markdown("---")
+    corr = df_raw[['coverage', 'ct_min', 'ct_max', 'ct_mean', 'Z', 'Y', 'X']].corr()
+    col_left, col_center, col_right = st.columns([0.5, 3, 0.5])
+
+    with col_center:
+        fig = px.imshow(
+            corr,
+            text_auto=True,
+            color_continuous_scale="viridis",
+            aspect="auto",
+            template=template,
+            title="Feature Correlation"
+        )
+
+        fig.update_layout(
+            height=400,
+            margin=dict(l=10, r=10, t=40, b=10)
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+    col_left1, col_center1, col_right1 = st.columns([0.5, 3, 0.5])
+    with col_center1:
+        st.markdown("""
+        The correlation analysis reveals meaningful relationships between structural
+        and intensity-based features.
+        
+        A strong positive correlation between mask coverage and maximum intensity
+        confirms that segmented regions correspond to high-density anatomical structures,
+        consistent with ossification centers.
+        
+        In contrast, a strong negative correlation between minimum and maximum intensity
+        indicates significant variability in intensity scaling across samples,
+        suggesting heterogeneous acquisition or preprocessing conditions.
+        
+        Additionally, the weak correlation between volumetric depth and other variables
+        indicates that anatomical content is largely independent of the number of slices,
+        which justifies the use of ROI-based approaches instead of full-volume processing.
+        
+        Overall, these relationships highlight the complex interplay between intensity,
+        geometry, and structure in the dataset, and further support the design choices
+        made in the data processing pipeline.
+        """)
+
+    col3, col4 = st.columns(2)
+
+    with col3:
+        fig = px.histogram(
+            df_raw,
+            x="Z",
+            nbins=40,
+            template=template,
+            title="Volume Depth (Z)",
+        )
+        fig.update_layout(height=300, margin=dict(l=10, r=10, t=40, b=10))
+        st.plotly_chart(fig, use_container_width=True)
+        st.markdown("""
+        The distribution of volumetric depth reveals substantial variability across samples,
+        with the number of slices ranging widely and lacking standardization.
+        
+        This variability prevents direct processing of full volumes within a unified model,
+        as consistent input dimensions are required for training.
+        
+        Moreover, the lack of correlation between depth and anatomical content indicates
+        that larger volumes do not necessarily contain more relevant information.
+        
+        These observations justify the use of ROI-based sampling and fixed-size sub-volumes,
+        which enable efficient and consistent processing of heterogeneous volumetric data.
+        
+        """)
+
+    with col4:
+        fig = px.scatter(
+            df_raw,
+            x="coverage",
+            y="ct_max",
+            template=template,
+            title="Coverage vs CT Max",
+            opacity=0.7
+        )
+        fig.update_traces(marker=dict(size=6))
+        fig.update_layout(height=300, margin=dict(l=10, r=10, t=40, b=10))
+        st.plotly_chart(fig, use_container_width=True)
+        st.markdown("""
+        The relationship between mask coverage and maximum CT intensity
+        reveals a clear positive correlation, indicating that larger segmented regions
+        are associated with higher intensity values.
+        
+        This is consistent with the physical properties of CT imaging,
+        where ossified structures exhibit high density and therefore high intensity values.
+        
+        The observed relationship validates the alignment between segmentation masks
+        and underlying anatomical structures, confirming that the dataset captures
+        meaningful physical characteristics.
+        
+        At the same time, the variability in the relationship suggests heterogeneity
+        in structure size and acquisition conditions, indicating that intensity alone
+        is insufficient for reliable segmentation and must be complemented by spatial context.
+        """)
+    st.markdown("---")
+    # 5. Summary table
+    summary = df_raw[['coverage', 'ct_min', 'ct_max', 'ct_mean', 'Z', 'Y', 'X']].describe()
+
+    st.table(summary)
+    st.markdown('---')
+    st.markdown("""
+    The exploratory data analysis reveals several key challenges inherent to the dataset.
+
+    First, anatomical structures occupy only a small fraction of the volumetric space,
+    resulting in extreme voxel-level class imbalance.
+    
+    Second, significant variability in volumetric dimensions prevents direct processing
+    of full volumes in a unified framework.
+    
+    Third, intensity distributions are not standardized across samples,
+    introducing additional complexity for model generalization.
+    
+    Finally, anatomical structures are highly fragmented and spatially sparse,
+    forming multiple disconnected components rather than continuous regions.
+    
+    These observations indicate that direct voxel-level learning is suboptimal.
+    Instead, a transformation of the data representation is required.
+    
+    This motivates the transition from voxel-level processing to
+    structure-aware data preparation, described in the next section.
+    
     """)
 if page == '3. Data Preparation':
     st.title("From Structural Analysis to feature engineering")
 
     st.markdown("""
-        ### From Voxels to Anatomical Structures
+    ### Structural Inconsistency of Labels and Clustering Approach
 
-        This stage goes beyond standard feature extraction.
-
-        Instead of operating directly on voxel-level data, segmentation masks are decomposed into individual anatomical components.
-        Each component is treated as an object and described using geometric and spatial features.
-
-        This transformation enables a shift from low-level image processing to structural analysis.
+    Exploratory analysis revealed that the original segmentation labels
+    are not consistently aligned with anatomical structures.
+    
+    In particular, spatial visualizations suggested that multiple labels
+    often correspond to the same anatomical region, forming coherent
+    spatial clusters despite having different identifiers.
+    
+    This indicates that the original labeling scheme is fragmented
+    and does not reflect the true anatomical organization.
+    
+    Since no predefined mapping between labels was available,
+    a data-driven approach was adopted.
+    
+    Each connected component was treated as an individual structure
+    and represented using:
+    
+    - normalized centroid (spatial position),
+    - size (volume proxy).
+    
+    These features were used to perform clustering using the K-Means algorithm.
+    
+    The number of clusters was estimated based on the median number
+    of components per volume, providing a data-adaptive approximation
+    of anatomical complexity.
+    
+    The resulting clusters preserved the spatial organization of structures,
+    while reducing label fragmentation.
+    
+    This transformation effectively redefines the segmentation space,
+    grouping geometrically consistent components into higher-level
+    structural entities.
         """)
 
     st.markdown("---")
-
     # ================= FEATURES =================
-
+    st.title("Clustering and Structural Grouping")
     st.subheader("Component Representation")
 
     st.markdown("""
@@ -612,17 +761,6 @@ if page == '3. Data Preparation':
         Such representation significantly reduces complexity while preserving essential structural information.
         """)
 
-    st.title("Clustering and Structural Grouping")
-
-    st.markdown("""
-    ### From Feature Space to Anatomical Organization
-
-    After transforming voxel-level data into structured representations,
-    clustering is applied to group anatomical components based on spatial and geometric similarity.
-
-    The objective is not only dimensionality reduction, but the discovery of meaningful structural organization.
-    """)
-
     st.markdown("---")
 
     # ================= SELECT =================
@@ -756,244 +894,226 @@ if page == '3. Data Preparation':
     """)
 
     st.markdown("---")
-# ================= 2D VALIDATION =================
 
-    st.write(" VALIDATION PAGE ACTIVE")
-    st.title("Validation and Reconstruction")
+    st.title("Region of Interest Extraction and Slicing")
 
     st.markdown("""
-    ### Validation in Original Voxel Space
+    ### From Structural Representation to Model Input
 
-    This section verifies whether clustering results remain consistent
-    when projected back into voxel space.
+    While clustering resolves inconsistencies in label representation,
+    it does not address the geometric challenges identified during exploratory analysis.
+
+    In particular, anatomical structures remain:
+    - small relative to the full volume,
+    - spatially sparse,
+    - and embedded within large background regions.
+
+    As a result, direct processing of full CT volumes remains inefficient and suboptimal.
+
+    To address this, a region-of-interest (ROI) based sampling strategy is introduced.
     """)
 
-    import plotly.graph_objects as go
-
-    st.subheader("2D Slice Validation")
-
-    df_raw = pd.read_csv('report_streamlit/data/principal_sharp_only.csv')
-
-    @st.cache_resource
-    def compute_pipeline(df):
-        test_records = build_records(df)
-        all_features = global_feature_collection(test_records)
-        all_features = global_clustering(
-            all_features,
-            compute_components_distribution(test_records)
-        )
-        return get_new_masks(all_features, test_records)
-
-    if "result" not in st.session_state:
-        st.session_state.result = compute_pipeline(df_raw)
-
-    result = st.session_state.result
-
-    col1, col2 = st.columns([2, 1])
-
-    with col1:
-        sample = st.selectbox("Sample", [r[0] for r in result])
-
-    with col2:
-        mode = st.radio("Mask", ["Before", "After"])
-
-    selected = next(r for r in result if r[0] == sample)
-    _, ct, mask_before, new_mask = selected
-
-    if mode == "Before":
-        mask = mask_before.copy()
-    else:
-        mask = new_mask.copy()
-
-    opacity = st.slider("Opacity", 0.0, 1.0, 0.5)
-
-    if ct.ndim != 3:
-        st.error(f"Invalid CT shape: {ct.shape}")
-        st.stop()
-
-    Z = ct.shape[0]
-    z_idx = st.slider("Slice", 0, Z - 1, Z // 2)
-
-    img = ct[z_idx].astype(float)
-    img = np.nan_to_num(img)
-
-    img = (img - img.min()) / (img.max() - img.min() + 1e-6)
-    img = (img * 255).astype(np.uint8)
-
-    mask_slice = (mask[z_idx] > 0).astype(np.uint8) * 255
-
-    if img.ndim != 2 or mask_slice.ndim != 2:
-        st.error("Invalid slice dimensionality")
-        st.stop()
-
-    img = img[::2, ::2]
-    mask_slice = mask_slice[::2, ::2]
-
-    fig = go.Figure()
-
-    img_rgb = np.stack([img, img, img], axis=-1)
-    fig.add_trace(go.Image(z=img_rgb))
-
-    mask_rgb = np.zeros((*mask_slice.shape, 3), dtype=np.uint8)
-    mask_rgb[..., 0] = mask_slice
-
-    fig.add_trace(go.Image(z=mask_rgb, opacity=opacity))
-
-    fig.update_layout(height=750, margin=dict(l=0, r=0, t=20, b=0))
-
-    st.plotly_chart(fig, use_container_width=True)
     st.markdown("---")
 
-    st.title("3D Visualization")
-    st.subheader("Structural Validation")
+    st.subheader("ROI Extraction")
+
     st.markdown("""
-    The 3D reconstruction provides a global view of anatomical structures.
+    For each slice, connected components are identified and processed individually.
 
-    Surfaces extracted from CT volumes and segmentation masks allow evaluation
-    of spatial consistency across the entire volume.
+    The following steps are applied:
 
-    This step is essential, as local correctness in 2D slices does not guarantee
-    global structural coherence.
+    - detection of connected components,
+    - computation of bounding boxes,
+    - expansion of regions using a margin,
+    - clamping to valid image boundaries,
+    - extraction of local patches.
+
+    This ensures that each region contains relevant anatomical information
+    while excluding unnecessary background.
     """)
-    df_raw = pd.read_csv('report_streamlit/data/principal_sharp_only.csv')
 
-    @st.cache_resource
-    def compute_pipeline(df):
-        test_records = build_records(df)
-        all_features = global_feature_collection(test_records)
-        all_features = global_clustering(
-            all_features,
-            compute_components_distribution(test_records)
-        )
-        return get_new_masks(all_features, test_records)
+    st.markdown("---")
 
-    if "result_3d" not in st.session_state:
-        st.session_state.result_3d = compute_pipeline(df_raw)
+    st.subheader("Slicing Strategy (2.5D Representation)")
 
-    result = st.session_state.result_3d
+    st.markdown("""
+    Instead of using full 3D volumes, a 2.5D approach is employed.
 
-    samples = [r[0] for r in result]
-    sample = st.selectbox("Select sample", samples, key="3d")
+    For each central slice:
+    - adjacent slices are stacked,
+    - forming a multi-channel input representation.
 
-    selected = next(r for r in result if r[0] == sample)
-    _, ct, mask_before, new_mask = selected
+    This provides local volumetric context while maintaining computational efficiency.
 
-    ct = ct.copy()
-    mask_before = mask_before.copy()
-    mask_after = new_mask.copy()
+    The final input has the form:
+    (5, 128, 128)
 
-    ct = ct[::3, ::3, ::3]
-    mask_before = mask_before[::3, ::3, ::3]
-    mask_after = mask_after[::3, ::3, ::3]
+    where:
+    - 5 represents adjacent slices,
+    - 128×128 is the normalized spatial resolution.
+    """)
 
-    ct = np.nan_to_num(ct)
-    ct = ct.astype(np.float32)
+    st.markdown("---")
 
-    vmin, vmax = np.percentile(ct, [5, 95])
-    ct = np.clip(ct, vmin, vmax)
-    ct = (ct - vmin) / (vmax - vmin + 1e-6)
+    st.subheader("Normalization and Filtering")
 
-    grid = pv.wrap(ct)
-    grid_before = pv.wrap((mask_before > 0).astype(np.uint8))
-    grid_after = pv.wrap((mask_after > 0).astype(np.uint8))
+    st.markdown("""
+    To ensure consistency across samples:
 
-    default_val = 0.5
+    - intensity values are normalized per volume,
+    - low-information regions are filtered based on mask coverage,
+    - duplicate samples are removed.
 
-    if default_val < ct.min() or default_val > ct.max():
-        default_val = float(np.percentile(ct, 70))
+    These steps reduce noise and improve training stability.
+    """)
 
-    threshold = st.slider(
-        "Bone threshold",
-        float(ct.min()),
-        float(ct.max()),
-        default_val
+    st.markdown("---")
+    st.markdown("""
+    ### Final Training Dataset Construction
+
+    Through the combination of clustering, region-of-interest extraction,
+    and slicing, the original volumetric data is transformed into
+    a structured training dataset.
+    
+    Each CT volume, after passing through the full pipeline:
+    - structural decomposition,
+    - semantic grouping (clustering),
+    - spatial localization (ROI),
+    - and slicing into fixed-size inputs,
+    
+    produces a collection of standardized samples.
+    
+    These samples are stored as independent training instances,
+    forming the final dataset used for model training.
+    
+    This transformation effectively converts a small number of heterogeneous
+    volumetric scans into a large and consistent dataset of localized
+    training examples.
+    
+    The resulting dataset is summarized in the metadata table,
+    which captures properties of each generated sample,
+    including spatial location, coverage, and structural characteristics.
+    
+    This representation enables:
+    
+    - dataset-level analysis,
+    - reproducibility,
+    - and controlled sampling strategies during training.
+    """)
+    col1, col2, col3, col4 = st.columns(4)
+    meta = pd.read_csv('report_streamlit/meta_index_full.csv')
+    col1.metric("Total samples", len(meta))
+    col2.metric("Unique cases", meta["case_id"].nunique())
+    col3.metric("Avg coverage", f"{meta['real_fill'].mean():.3f}")
+    col4.metric("Median coverage", f"{meta['real_fill'].median():.3f}")
+    st.subheader("Generated Training Dataset")
+
+    st.dataframe(
+        meta.head(50),
+        use_container_width=True
     )
-
-    plotter = pv.Plotter(off_screen=True)
-    plotter.set_background("black")
-
-    ct_surface = grid.contour([threshold])
-    show_before = st.toggle("Show BEFORE", True)
-    show_after = st.toggle("Show AFTER", True)
-    if ct_surface.n_points > 0:
-        plotter.add_mesh(ct_surface, color="white", opacity=0.2)
-
-    if show_before:
-        before_surface = grid_before.contour([0.5])
-        if before_surface.n_points > 0:
-            plotter.add_mesh(before_surface, color="green", opacity=0.5)
-
-    if show_after:
-        after_surface = grid_after.contour([0.5])
-        if after_surface.n_points > 0:
-            plotter.add_mesh(after_surface, color="red", opacity=0.5)
-
-    angle = st.slider("Rotate", 0, 360, 45)
-
-    plotter.reset_camera()
-    plotter.camera.zoom(1.3)
-    plotter.camera.Azimuth(angle)
-    plotter.enable_eye_dome_lighting()
-
-    plotter.show(auto_close=False)
-
-    img = plotter.screenshot()
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.image(img, use_container_width=True)
-    st.markdown("""### 3D Visualization in Medical Imaging
-
-3D visualization constitutes one of the most critical components of modern medical diagnostics, particularly in the context of volumetric imaging such as CT scans. Continuous advancements in this domain directly contribute to improving diagnostic precision and, ultimately, patient outcomes. Developing and refining methods for medical image analysis is therefore not only a technical challenge, but also a meaningful contribution to healthcare and life preservation.
-
-The 3D reconstruction presented above should be interpreted as an approximation of the original volumetric data. It relies on surface extraction techniques that capture only selected structural characteristics of the scan. Consequently, the generated geometry reflects only certain traits of the underlying volume and remains a simplified representation rather than a fully faithful reconstruction.
-
-This highlights the inherent gap between lightweight, web-based visualization approaches and dedicated medical imaging environments. Specialized tools such as *napari* operate directly on voxel-level data, enabling precise, high-fidelity inspection without intermediate approximation.
-
-To emphasize this difference, the following images were generated from the same dataset using napari. They illustrate the true level of detail and structural accuracy achievable when working directly with volumetric medical data.
-""")
-    def show_image(path, caption):
-        st.markdown(f"""
-            <div style="height: 350px; display: flex; align-items: center; justify-content: center;">
-                <img src="{path}" style="max-height: 100%; max-width: 100%; object-fit: contain;">
-            </div>
-            <p style="text-align: center; font-size: 14px;">{caption}</p>
-        """, unsafe_allow_html=True)
-
-    colx,coly,colz = st.columns([1, 2, 1])
-    with colx:
-        show_image("report_streamlit/assets/ct1_napari.png", caption="Clustered and Reconstructed Structures CT with mask")
-    with coly:
-        show_image("report_streamlit/assets/ct3_maskGT.png",caption="Clustered and reconstructed mask")
-    with colz:
-        show_image("report_streamlit/assets/ct2_napari.png", caption="Grand Truth of the same example")
-
+    st.markdown("""
+    Each row in the table corresponds to a single training sample
+    generated through the preprocessing pipeline.
+    
+    The dataset no longer represents full CT volumes,
+    but localized regions containing anatomical structures.
+    
+    This transformation significantly increases the number of training instances,
+    while preserving structural information.
+    
+    As a result, the learning process operates on a derived dataset,
+    which is specifically designed to address the challenges identified
+    during exploratory data analysis.
+    
+    """)
 elif page == "4. Model Training":
 
     st.title("4. Model Training")
-
     st.markdown("""
     ### Problem Formulation
 
     The task is formulated as a multi-class semantic segmentation problem,
-    where each pixel is assigned to a specific ossification center or background.
+    where each pixel is assigned to one of the predefined ossification classes
+    or background.
+    
+    However, the primary challenge does not lie in class discrimination,
+    but in detecting the presence of anatomical structures within highly sparse data.
+    
+    The dataset is characterized by:
+    
+    - a limited number of original volumetric scans,
+    - a significantly expanded number of training samples through slicing,
+    - and an extreme class imbalance at the pixel level.
+    
+    Although slicing increases the number of samples,
+    it does not resolve the imbalance problem,
+    as the vast majority of pixels still correspond to background.
+    
+    At this stage, the class space is already simplified through clustering,
+    allowing the model to operate on a more consistent and anatomically meaningful
+    set of labels.
+    
+    ### Final Definition of Anatomical Classes
 
-    The objective is to learn a mapping from a multi-channel input representation
-    (2.5D slices) to a dense pixel-wise classification map.
-    Class Imbalance
-
-    This particular segmentation problem is characterized by **extreme class imbalance**:
-
-    - background: ~99.99% of pixels  
-    - ossification centers: ~0.01%  
-
-    This imbalance leads to:
-    - weak learning signal for foreground classes,
-    - strong bias toward predicting background,
-    - increased risk of false negatives.
-
-    As a result, standard metrics and loss functions become inadequate.
+    During the later stage of the project,
+    additional information regarding the true anatomical labeling
+    of the dataset became available.
+    
+    It was established that the segmentation task involves
+    a set of seven anatomically defined classes,
+    corresponding to specific ossification centers.
+    
+    This clarification significantly improved the consistency
+    and interpretability of the problem.
+    
+    In contrast to the initial dataset, which contained up to 55 fragmented labels,
+    the final class definition provides a coherent and clinically meaningful
+    representation of anatomical structures.
+    
+    As a result, the modeling task can be formulated using a well-defined
+    and significantly simplified label space.
     """)
+    st.markdown("""
+    Importantly, the model does not operate independently.
 
+    The Dataset, sampling strategy, and model architecture jointly define
+    the effective learning system.
+
+    The dataset determines what information is available,
+    the sampler controls how it is presented,
+    and the model defines how it is interpreted.
+
+    This interaction is critical in highly imbalanced medical segmentation tasks.
+    """)
+    st.markdown('---')
+    st.markdown("""
+    ### Training Pipeline and Data Sampling
+
+    The training process operates on the dataset constructed during preprocessing,
+    represented as a collection of localized samples.
+    
+    A custom dataset class is used to load:
+    - multi-channel input tensors (2.5D slices),
+    - corresponding segmentation masks.
+    
+    To address the imbalance in sample difficulty,
+    a difficulty-aware sampling strategy is introduced.
+    
+    Samples are categorized based on mask coverage,
+    which reflects the proportion of foreground pixels:
+    
+    - easy samples → high coverage,
+    - medium samples → moderate coverage,
+    - hard samples → low coverage.
+    
+    This categorization allows the training process to control
+    the distribution of samples seen by the model.
+    
+    A custom sampler is then used to construct batches
+    that balance these difficulty levels,
+    preventing the model from being dominated by trivial background examples.
+    """)
     st.markdown("---")
     st.markdown("### Mathematical Formulation")
 
@@ -1082,12 +1202,12 @@ elif page == "4. Model Training":
 
     st.markdown("---")
     st.markdown("""
-    ### 4.2 Why CNN.
+    ### Why CNN
     
     CNN donc -> Convolutional Neural Networks were selected due to their ability to capture
     **spatial dependencies** between neighbouring pixels and local patterns
     in contrast to classical machine learning models such as Random Forests or MLPs,
-    CNNs preserve the spatial arrangement of pixels and exploit local context through convolutional filters.
+    CNN preserve the spatial arrangement of pixels and exploit local context through convolutional filters.
 
 
     This is very important in medical imaging, where the meaning of a pixel, which defines 
@@ -1150,50 +1270,47 @@ elif page == "4. Model Training":
     st.markdown("""
     ### Training Strategy
 
-    The model was trained **from scratch**, without pre-trained weights.
+    The model was trained from scratch, without pre-trained weights.
 
     This decision was motivated by the strong domain mismatch between natural images
     and CT data, particularly in terms of intensity distribution and anatomical structure.
-
+    
     Training from scratch allows the model to learn representations
     specific to fetal ossification patterns.
+    
+    The training process operates on a dataset constructed through the preprocessing pipeline,
+    where each sample corresponds to a localized region of interest represented as a
+    multi-channel input of shape (5, 128, 128).
+    
+    To address the extreme class imbalance and sparsity of anatomical structures,
+    a difficulty-aware sampling strategy was introduced.
+    
+    Samples are categorized based on mask coverage, which reflects the proportion
+    of foreground pixels within each sample. This results in three groups:
+    
+    easy samples (high coverage),
+    medium samples,
+    hard samples (low coverage, highly sparse structures).
+    
+    A custom sampler is used to construct batches that balance these difficulty levels,
+    ensuring that informative samples are consistently presented to the model during training.
+    
+    This approach does not eliminate class imbalance at the pixel level,
+    but mitigates its impact by controlling the distribution of samples seen by the model.
+    
+    Importantly, the training process does not operate on raw volumetric data,
+    but on a transformed representation generated by the preprocessing pipeline.
+    As a result, the dataset, sampling strategy, and model jointly define
+    the effective learning space of the system.
     """)
 
     st.markdown("---")
 
-    st.markdown("""
-    ### Class Imbalance
 
-    The segmentation problem is characterized by **extreme class imbalance**:
-
-    - background: ~99.99% of pixels  
-    - ossification centers: ~0.01%  
-
-    This imbalance leads to:
-    - weak learning signal for foreground classes,
-    - strong bias toward predicting background,
-    - increased risk of false negatives.
-
-    As a result, standard metrics and loss functions become inadequate.
-    """)
 
     st.markdown("---")
 
 
-
-    st.markdown("""
-    ### Why Accuracy is Not Used
-
-    Accuracy is not a suitable metric in this setting.
-
-    Due to extreme class imbalance, a trivial model predicting only background
-    would achieve near-perfect accuracy, while completely failing to detect
-    any anatomical structures.
-
-    Therefore, overlap-based metrics such as Dice are preferred.
-    """)
-
-    st.markdown("---")
 elif page == "5. Evaluation & Results":
 
     st.title("5. Evaluation & Results")
@@ -1216,10 +1333,36 @@ elif page == "5. Evaluation & Results":
         template=template
     )
     st.plotly_chart(fig, use_container_width=True)
-
+    st.caption("""
+    Distribution of Dice scores across individual samples.
+    The histogram illustrates the variability of segmentation performance
+    at the case level, capturing both successful predictions and challenging cases.
+    """)
     st.markdown("""
-    The distribution shows high variability in segmentation performance,
-    with strong results for typical cases and failures in challenging scenarios.
+    The distribution reveals a wide spread of Dice scores, indicating
+    significant variability in segmentation performance across samples.
+    
+    Notably, a substantial portion of cases achieves Dice scores approaching 0.7,
+    which indicates a strong overlap between predictions and ground truth,
+    especially given the extreme sparsity and complexity of the task.
+    
+    This level of performance confirms that the model successfully captures
+    meaningful anatomical patterns and is capable of reliable localization
+    of ossification centers.
+    
+    At the same time, the presence of a tail of low-performing samples
+    reflects the inherent difficulty of certain cases, likely associated
+    with small structure size, low contrast, or anatomical variability.
+    
+    These results suggest that while the model already achieves solid performance,
+    further improvements are feasible through fine-tuning, enhanced sampling strategies,
+    or architectural refinements.
+    
+    Importantly, the absence of a sharp peak suggests that the model does not
+    overfit to a narrow subset of cases, but instead generalizes across varying conditions.
+    
+    Achieving Dice scores at this level in a highly imbalanced medical segmentation task
+    indicates that the proposed pipeline is effective and well-aligned with the problem characteristics.
     """)
 
     st.markdown("---")
@@ -1237,10 +1380,25 @@ elif page == "5. Evaluation & Results":
     st.plotly_chart(fig, use_container_width=True)
 
     st.markdown("""
-    Performance varies significantly across classes, reflecting differences
-    in size, visibility and frequency.
+    Per-class Dice performance across anatomical structures.
+    The bar chart shows segmentation quality for each class,
+    highlighting differences in model performance depending on structure characteristics.
     """)
-
+    st.markdown("""
+    Performance varies across classes, reflecting differences in structure size,
+    contrast, and frequency within the dataset.
+    
+    Classes corresponding to larger or more distinct anatomical structures
+    achieve higher Dice scores, while smaller or less defined structures
+    remain more challenging.
+    
+    This confirms that segmentation performance is strongly influenced
+    by geometric and spatial properties of the targets, rather than
+    pure classification difficulty.
+    
+    The results further support the need for specialized handling
+    of small structures in medical segmentation tasks.
+    """)
     st.markdown("---")
 
     st.subheader("Difficulty Distribution")
@@ -1265,17 +1423,68 @@ elif page == "5. Evaluation & Results":
     st.subheader("Key Insight")
 
     st.markdown("""
-    The primary challenge is not distinguishing between anatomical structures,
-    but detecting their presence in highly sparse data.
+    The distribution is skewed toward low-coverage samples,
+    indicating that the dataset is dominated by difficult cases.
+    
+    This confirms the extreme sparsity of anatomical structures,
+    where most samples contain only a minimal amount of foreground information.
+    
+    Such distribution directly explains the observed performance variability
+    and highlights the importance of difficulty-aware sampling strategies
+    introduced during training.
+    
+    The prevalence of hard samples reinforces that the problem is inherently
+    detection-driven rather than classification-driven.
+    
+    Overall, the results demonstrate that the proposed pipeline enables
+    meaningful learning despite severe data limitations, while clearly
+    highlighting the fundamental challenges associated with sparse
+    medical image segmentation.
     """)
 elif page == "6. Conclusion & Future Work":
     st.markdown("""
-    ### Future Work
+    ### Conclusion and Future Work
 
-    Future improvements may include:
-
-    - full 3D modeling,
-    - improved detection of small structures,
-    - integration of anatomical priors,
-    - expansion of dataset.
+    This project presents a complete pipeline for the analysis and segmentation
+    of fetal ossification centers from volumetric CT data,
+    covering all stages from raw data reconstruction to model training and evaluation.
+    
+    Despite the substantial effort invested in data preprocessing,
+    including reverse engineering of heterogeneous medical files,
+    structural analysis, and dataset construction,
+    the experimental evaluation was conducted on a single model configuration.
+    
+    This limitation is primarily due to the complexity of the problem,
+    which requires significant work not only in model design,
+    but also in data engineering, preprocessing, and exploratory analysis.
+    
+    Unlike traditional data analysis tasks,
+    medical image analysis involves spatial, geometric, and structural reasoning,
+    which introduces additional layers of difficulty beyond standard statistical approaches.
+    
+    The results obtained in this study demonstrate that the proposed pipeline
+    provides a solid foundation for addressing this challenging problem.
+    The model is capable of capturing meaningful anatomical patterns,
+    despite the extreme sparsity and variability of the data.
+    
+    However, several directions for further improvement remain.
+    
+    Future work will focus on:
+    
+    * refining ROI extraction and cropping strategies,
+    * exploring different patch sizes and spatial contexts,
+    * improving sampling techniques for highly imbalanced data,
+    * and extending the analysis to multiple model architectures.
+    
+    Overall, this work should be viewed as a strong initial step
+    toward solving a complex and underexplored problem in medical image segmentation,
+    with significant potential for further development.
+    The results confirm that the main challenge lies in data representation
+    and structural sparsity, rather than model capacity alone.
+    """)
+    st.markdown("""
+    ---
+    **Author:** Michał Zieliński  
+    **Project:** Fetal Ossification Segmentation  
+    **Date:** 2026  
     """)
