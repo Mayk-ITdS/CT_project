@@ -2,7 +2,6 @@ import logging
 import time
 from pathlib import Path
 import random
-
 import numpy as np
 import pandas as pd
 import torch
@@ -149,22 +148,83 @@ def pipeline():
 
     # print('Jestem tuz przed zbieraniem train indexow')
     # print("Jestem przed arrange diffs")
-    # easy_train,medium_train,hard_train = arrange_difficulties(train_files_2_5D,p33,p66)
+    easy_train,medium_train,hard_train = arrange_difficulties(train_files_2_5D,p33,p66)
     #
     # print("TRAIN DATASET LENGTH:", len(train_files_2_5D))
     # print('Test ids : ',train_ids)
     # print("easy:", len(easy_train))
     # print("medium:", len(medium_train))
     # print("hard:", len(hard_train))
-    # sampler_train = DifficultyBatchSampler(easy_train, medium_train, hard_train)
-    #
-    # train_loader, val_loader, test_loader = build_dataloaders(sampler_train,train_files_2_5D, val_files_2_5D, test_files_2_5D)
+    sampler_train = DifficultyBatchSampler(easy_train, medium_train, hard_train)
+
+    train_loader, val_loader, test_loader = build_dataloaders(sampler_train,train_files_2_5D, val_files_2_5D, test_files_2_5D)
 
     print("==================================== Now starting DataLoaders =========================================")
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     model = load_my_model('model_last_v.pth',device)
     print(model)
+
+    def evaluate_model_full(model, loader, device, num_classes=7):
+        model.eval()
+
+        TP = [0] * num_classes
+        FP = [0] * num_classes
+        FN = [0] * num_classes
+
+        dice_scores = []
+
+        with torch.no_grad():
+            for ct, mask in loader:
+                ct = ct.to(device)
+                mask = mask.to(device)
+
+                pred = model(ct)
+                pred = torch.argmax(pred, dim=1)
+
+                for c in range(1, num_classes):  # skip background
+                    tp = ((pred == c) & (mask == c)).sum().item()
+                    fp = ((pred == c) & (mask != c)).sum().item()
+                    fn = ((pred != c) & (mask == c)).sum().item()
+
+                    TP[c] += tp
+                    FP[c] += fp
+                    FN[c] += fn
+
+                # dice global (bez background)
+                intersection = ((pred > 0) & (mask > 0)).sum().item()
+                union = (pred > 0).sum().item() + (mask > 0).sum().item()
+
+                dice = (2 * intersection) / (union + 1e-6)
+                dice_scores.append(dice)
+
+        precision = []
+        recall = []
+        dice_per_class = []
+
+        for c in range(1, num_classes):
+            p = TP[c] / (TP[c] + FP[c] + 1e-6)
+            r = TP[c] / (TP[c] + FN[c] + 1e-6)
+            d = (2 * TP[c]) / (2 * TP[c] + FP[c] + FN[c] + 1e-6)
+
+            precision.append(p)
+            recall.append(r)
+            dice_per_class.append(d)
+
+        results = {
+            "precision": precision,
+            "recall": recall,
+            "dice_per_class": dice_per_class,
+            "dice_mean": sum(dice_scores) / len(dice_scores)
+        }
+
+        return results
+
+    results = evaluate_model_full(model, test_loader, device)
+
+    print("Dice mean:", results["dice_mean"])
+    print("Precision:", results["precision"])
+    print("Recall:", results["recall"])
     # results = evaluate_model(model,test_loader,device)
     # test_dataset = CTDataset(test_files_2_5D)
     # print(results)

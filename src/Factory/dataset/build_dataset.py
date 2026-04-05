@@ -10,7 +10,7 @@ from tqdm import tqdm
 ROOT = Path(__file__).resolve().parents[3]
 DATASET_DIR = ROOT / "src/Factory/dataset/Dataset"
 DATASET_DIR.mkdir(exist_ok=True)
-DATA_MAIN_DIR = Path(r"D:\Kozmin\jadrakostnienia2024\jadrakostnienia2024")
+DATA_MAIN_DIR = Path(r"E:\Kozmin\jadrakostnienia2024\jadrakostnienia2024")
 HERE = Path(__file__).parent.parent
 principal_path = HERE / "principal_sharp_only.csv"
 seed = 42
@@ -176,7 +176,7 @@ def crop_clean(ct_stack, mk_slice, y0, y1, x0, x1 , target=128):
     ct_resized = np.stack([
         cv2.resize(ct_crop[i], (target, target), interpolation=cv2.INTER_LINEAR)
         for i in range(ct_crop.shape[0])
-    ])
+        ])
 
     # resize mask (NEAREST!)
     mk_resized = cv2.resize(
@@ -457,22 +457,51 @@ def slice_records(df_paths):
     total = success + fail + skipped
     print(f"TOTAL PROCESSED: {total}")
     return records
-
+eda_rows =[]
 def build_dataset(path):
     logger.info("Building dataset...")
     records = pd.read_csv(path)
     records = build_records(records)
     records_ok = records[records["ok"]]
+    folder = DATA_MAIN_DIR / records['sample_nr']
+
+    print("\n==== SAMPLE ====")
+    print("sample_nr:", records['sample_nr'])
+    print("folder exists:", folder)
+
+    print("FILES IN FOLDER:")
+    for f in folder:
+        print("  ", f.name)
+
+    print("rel_ct:", records['ct'])
+
+    ct_path = folder / records['ct']
+    print("FULL PATH:", ct_path)
+    print("EXISTS:", ct_path)
+    eda_rows =[]
     for i,row in enumerate(records_ok.itertuples()):
-
+        print(row)
         ct, mk = load_pair_from_ct(row.ct, row.mk)
-        print("ct.shape:", ct.shape,'mk.shape:', mk.shape)
-        print('classes :',np.unique(mk))
-        print('sample_nr :',row.sample_nr,'ct_dtype',ct.dtype, 'mask_dtype',mk.dtype)
+        print("CT:", ct.shape, "MK:", mk.shape)
+        unique_classes = np.unique(mk)
+        mask_pixels = np.sum(mk > 0)
+        total_pixels = mk.size
+        coverage = mask_pixels / total_pixels if total_pixels > 0 else 0
 
-
-
-
+        eda_rows.append({
+            "sample_nr": row.sample_nr,
+            "ct_shape": ct.shape,
+            "mask_shape": mk.shape,
+            "num_classes": len(unique_classes),
+            "classes": unique_classes.tolist(),
+            "mask_pixels": mask_pixels,
+            "coverage": coverage,
+            "ct_min": float(np.min(ct)),
+            "ct_max": float(np.max(ct)),
+            "ct_mean": float(np.mean(ct))
+        })
+    eda_df = pd.DataFrame(eda_rows)
+    eda_df.to_csv('eda_full.csv', index=False)
     #slice_records(records_ok)
 
 if __name__ == '__main__':
