@@ -54,13 +54,6 @@ if page == "1. Problem & Dataset":
     st.title("1. Fetal Ossification Centers Analysis")
     col1, col2, col3, col4 = st.columns(4)
 
-    col1.metric("Total components", len(df))
-    col2.metric("Original classes", df["label"].nunique())
-    col3.metric("Clusters", df["cluster"].nunique())
-    col4.metric("Avg size", int(df["size"].mean()))
-    reduction = 1 - (df["cluster"].nunique() / df["label"].nunique())
-    col4.metric("Reduction", f"{int(reduction * 100)}%")
-
     st.markdown("""
     ### Research Context and Problem Definition
 
@@ -169,7 +162,7 @@ if page == "1. Problem & Dataset":
         """)
     # ============================ Data Engineering ================================
 elif page == '2. Exploratory Data Analysis':
-    st.title("2.1 Data Reverse Engineering Pipeline")
+    st.title("Data Reverse Engineering Pipeline")
 
     st.markdown("""
         ### From Unstructured Medical Files to Usable Data
