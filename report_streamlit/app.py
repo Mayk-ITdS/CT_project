@@ -1,10 +1,6 @@
 from pathlib import Path
 import os
 import sys
-from PIL import Image
-from cyclopts.help.formatters import markdown
-from docutils.nodes import caption
-from matplotlib import pyplot as plt
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0,ROOT)
 import streamlit as st
