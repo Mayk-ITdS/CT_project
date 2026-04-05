@@ -1,5 +1,5 @@
 streamlit
-pandas==2.2.2
-numpy==1.26.4
 plotly
-matplotlib==3.10.8
+pandas
+numpy
+matplotlib3.10.8
