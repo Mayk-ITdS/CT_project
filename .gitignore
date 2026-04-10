@@ -1,4 +1,4 @@
-src/Dataset/
+Dataset/
 *.pt
 *.pth
 *.log
@@ -8,5 +8,5 @@ __pycache__/
 .venv/
 .venv310/*
 venv/
-venv310/
 env/
+venv310*
