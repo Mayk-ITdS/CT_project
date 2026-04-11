@@ -980,7 +980,7 @@ if page == '3. Data Preparation':
     - and controlled sampling strategies during training.
     """)
     col1, col2, col3, col4 = st.columns(4)
-    meta = pd.read_csv('report_streamlit/meta_index_full.csv')
+    meta = pd.read_csv('report_streamlit/data/meta_index_full.csv')
     col1.metric("Total samples", len(meta))
     col2.metric("Unique cases", meta["case_id"].nunique())
     col3.metric("Avg coverage", f"{meta['real_fill'].mean():.3f}")
