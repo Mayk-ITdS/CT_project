@@ -34,9 +34,9 @@ def clamp_format(x):
 
 df, cross, df_raw = load_data()
 # ================= THEME =================
-theme = st.sidebar.toggle("Dark mode", True)
-template = "plotly_dark" if theme else "plotly_white"
-
+# theme = st.sidebar.toggle("Dark mode", True)
+# template = "plotly_dark" if theme else "plotly_white"
+template = "plotly_dark"
 # ================= SIDEBAR =================
 page = st.sidebar.radio(
     "Report Sections",
