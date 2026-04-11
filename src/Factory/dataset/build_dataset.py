@@ -173,10 +173,7 @@ def crop_clean(ct_stack, mk_slice, y0, y1, x0, x1 , target=128):
         return None, None
 
     # resize CT (kanały osobno)
-    ct_resized = np.stack([
-        cv2.resize(ct_crop[i], (target, target), interpolation=cv2.INTER_LINEAR)
-        for i in range(ct_crop.shape[0])
-        ])
+    ct_resized = np.stack([cv2.resize(ct_crop[i], (target, target), interpolation=cv2.INTER_LINEAR) for i in range(ct_crop.shape[0])])
 
     # resize mask (NEAREST!)
     mk_resized = cv2.resize(

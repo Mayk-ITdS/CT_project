@@ -1058,16 +1058,14 @@ elif page == "4. Model Training":
     and significantly simplified label space.
     """)
     st.markdown("""
-    Importantly, the model does not operate independently.
+   Importantly, model performance in this task depends not only on the network architecture,
+    but also on how the data is prepared and sampled during training.
 
-    The Dataset, sampling strategy, and model architecture jointly define
-    the effective learning system.
+    Because the dataset is highly imbalanced and most samples contain very limited foreground information,
+    the sampling strategy strongly influences what the model actually learns.
 
-    The dataset determines what information is available,
-    the sampler controls how it is presented,
-    and the model defines how it is interpreted.
-
-    This interaction is critical in highly imbalanced medical segmentation tasks.
+    For this reason, the final training setup should be understood as a combination of
+    preprocessing, difficulty-aware sampling, and model design rather than the architecture alone.
     """)
     st.markdown('---')
     st.markdown("""
