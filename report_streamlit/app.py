@@ -1289,11 +1289,6 @@ elif page == "4. Model Training":
 
     st.markdown("---")
 
-
-
-    st.markdown("---")
-
-
 elif page == "5. Evaluation & Results":
 
     st.title("5. Evaluation & Results")
@@ -1469,5 +1464,5 @@ elif page == "6. Conclusion & Future Work":
     ---
     **Author:** Michał Zieliński  
     **Project:** Fetal Ossification Segmentation  
-    **Date:** 2026  
+    **Date:** 05/04/2026  
     """)

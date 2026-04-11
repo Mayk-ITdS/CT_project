@@ -10,3 +10,4 @@ __pycache__/
 venv/
 env/
 venv310*
+311venv*
