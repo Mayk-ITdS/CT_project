@@ -51,7 +51,7 @@ page = st.sidebar.radio(
 )
 if page == "1. Problem & Dataset":
 
-    st.title("1. Fetal Ossification Centers Analysis")
+    st.title("Fetal Ossification Centers Analysis")
     col1, col2, col3, col4 = st.columns(4)
 
     st.markdown("""
@@ -121,6 +121,10 @@ if page == "1. Problem & Dataset":
     """)
 
     st.markdown("---")
+
+    st.write("Streamlit version:", st.__version__)
+    import sys
+    st.write(sys.version)
 
     st.subheader("Dataset Summary")
 
@@ -1008,7 +1012,7 @@ if page == '3. Data Preparation':
     """)
 elif page == "4. Model Training":
 
-    st.title("4. Model Training")
+    st.title("Model Training")
     st.markdown("""
     ### Problem Formulation
 
