@@ -648,11 +648,11 @@ if page == '3. Data Preparation':
 
         Despite normalization, the distribution remains moderately right-skewed, indicating a persistent imbalance between small and large anatomical structures. This is consistent with the nature of medical imaging data, where numerous fine-grained structures coexist with fewer large regions.
 
-        Histograms are particularly effective in revealing the shape and skewness of data distributions, making them a fundamental tool in exploratory data analysis :contentReference[oaicite:0]{index=0}.
+        Histograms are particularly effective in revealing the shape and skewness of data distributions, making them a fundamental tool in exploratory data analysis.
 
         From a modeling perspective, this size imbalance is critical. Without transformation, clustering algorithms such as K-Means would be dominated by large components due to their magnitude, leading to biased grouping.
 
-        The boxplot complements this analysis by providing a compact summary of distributions across clusters, highlighting variability, spread, and potential outliers :contentReference[oaicite:1]{index=1}.
+        The boxplot complements this analysis by providing a compact summary of distributions across clusters, highlighting variability, spread, and potential outliers.
 
         The visualization shows that while variability exists, distributions across clusters remain relatively consistent. This suggests that clustering is not driven purely by size, but by a combination of spatial and structural features.
 
