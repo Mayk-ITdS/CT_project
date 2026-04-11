@@ -1289,7 +1289,7 @@ elif page == "4. Model Training":
 
 elif page == "5. Evaluation & Results":
 
-    st.title("5. Evaluation & Results")
+    st.title("Evaluation & Results")
 
     col1, col2, col3 = st.columns(3)
     col1.metric("Train Dice", "0.69")
