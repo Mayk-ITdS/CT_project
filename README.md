@@ -27,6 +27,10 @@ The results are taken from the accompanying technical report. The number of eval
 
 ## 1. Research context and problem
 
+![Research context infographic](docs/images/research-context.svg)
+
+*Overview of the clinical, data availability and computational constraints. This diagram summarizes the research context and does not contain patient data.*
+
 Fetal CT data is rare and difficult to access because of clinical and ethical constraints. The anatomical structures of interest are very small, irregular, variable across development and often difficult to distinguish from surrounding tissues.
 
 This creates several problems at once:
