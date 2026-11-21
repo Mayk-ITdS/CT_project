@@ -6,7 +6,11 @@ A research project on fetal ossification center segmentation from volumetric CT 
 
 **Topics:** medical imaging, data reconstruction, 3D spatial analysis, data preparation, 2.5D segmentation, PyTorch, CNNs.
 
-**Data access:** The original medical CT scans and annotations are confidential and cannot be redistributed. This README intentionally avoids displaying identifiable or otherwise restricted source scans. The interactive report contains research visualizations; access to and reuse of those visuals must follow the dataset's permissions.
+**Data access:** The original CT dataset is confidential and cannot be redistributed. The images, charts and prepared material already published in this repository are approved for use in this portfolio.
+
+![CT slice with anatomical segmentation overlay](report_streamlit/assets/ct1_napari.png)
+
+*Example from the project. The source dataset itself is not available for download.*
 
 ## At a glance
 
@@ -33,7 +37,13 @@ This creates several problems at once:
 - Changes in the visible structures across adjacent slices.
 - Complex preprocessing before meaningful training becomes possible.
 
-A research-context infographic can be added to `docs/images/research-context.png` once its visuals are confirmed to be cleared for publication. The text here remains useful without patient imagery. The estimated fraction of occupied CT voxels shown in the infographic should be treated as dataset-specific, not as a general clinical constant.
+The research context is summarized in three dimensions:
+
+| Clinical and ethical constraints | Data constraints | Computational challenges |
+|---|---|---|
+| CT examinations during pregnancy are uncommon and clinically justified only in specific circumstances. | Access to the underlying scans is restricted and the available cohort is small. | Targets are tiny, irregular and spatially variable, with substantial foreground/background imbalance. |
+
+The project's research-context infographic estimates the ossification-center fraction of CT volume at approximately 0.01%. This is a dataset-specific figure, not a general clinical constant.
 
 ## 2. From source files to aligned CT volumes and masks
 
@@ -50,7 +60,11 @@ The reconstruction work involves:
 
 The repository includes reconstruction and validation-related code in `src/Extract/`, `src/Factory/MaskRebuilder/` and `src/Factory/dataset/`.
 
-No original CT volumes or segmentation masks are provided for download. Publicly shareable diagrams and non-sensitive summaries can be used to explain the reconstruction method without revealing the source dataset.
+The following figures are taken from the public repository's existing report assets. They illustrate reconstruction and mask alignment without redistributing the restricted source dataset.
+
+| Reconstructed CT view | Corresponding segmentation view |
+|---|---|
+| ![Reconstructed fetal CT](report_streamlit/assets/ct2_napari.png) | ![Anatomical mask representation](report_streamlit/assets/ct3_maskGT.png) |
 
 ## 3. Exploratory and structural analysis
 
@@ -136,11 +150,11 @@ On Windows PowerShell, activate the virtual environment with `.venv\Scripts\Acti
 
 ## 9. Confidential data and reproducibility
 
-The original CT volumes, segmentation annotations and patient-level source records are **confidential**. They are not supplied with this repository and must not be requested or redistributed through this project. Their absence is intentional, not a missing setup step.
+The original CT volumes, segmentation annotations and restricted patient-level source records are **confidential**. They are not supplied with this repository and cannot be redistributed. The project author has confirmed that the images and derived files already present in this public repository may be used in the documentation. This distinction is intentional, not a missing setup step.
 
 The code and technical report document the reconstruction, preparation and evaluation methodology. With an independently licensed or synthetic dataset of compatible structure, the processing logic can be studied and tested, but the original experimental results cannot be independently reproduced without authorized access to the restricted data.
 
-For verification without source-data disclosure, the project can add synthetic fixtures, schema descriptions, unit tests for decoding and shape alignment, patient-split disjointness checks, and small synthetic end-to-end examples. Any published figures, screenshots, CSV extracts and metadata should be reviewed against the same confidentiality restrictions.
+For verification without source-data disclosure, the project can add synthetic fixtures, schema descriptions, unit tests for decoding and shape alignment, patient-split disjointness checks, and small synthetic end-to-end examples. Only materials authorized for public release should be added beyond the assets already published.
 
 This is an experimental research project, not medical advice or a clinically validated diagnostic tool.
 
