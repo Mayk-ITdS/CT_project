@@ -27,7 +27,7 @@ The results are taken from the accompanying technical report. The number of eval
 
 ## 1. Research context and problem
 
-![Research context infographic](docs/images/research-context.svg)
+![Research context infographic](docs/images/research-context.png)
 
 *Overview of the clinical, data availability and computational constraints. This diagram summarizes the research context and does not contain patient data.*
 
