@@ -6,7 +6,7 @@ A research project on fetal ossification center segmentation from volumetric CT 
 
 **Topics:** medical imaging, data reconstruction, 3D spatial analysis, data preparation, 2.5D segmentation, PyTorch, CNNs.
 
-![CT scan with anatomical segmentation overlay](report_streamlit/assets/ct1_napari.png)
+**Data access:** The original medical CT scans and annotations are confidential and cannot be redistributed. This README intentionally avoids displaying identifiable or otherwise restricted source scans. The interactive report contains research visualizations; access to and reuse of those visuals must follow the dataset's permissions.
 
 ## At a glance
 
@@ -33,7 +33,7 @@ This creates several problems at once:
 - Changes in the visible structures across adjacent slices.
 - Complex preprocessing before meaningful training becomes possible.
 
-The full research-context infographic is provided separately for addition to `docs/images/research-context.png`. The text and real screenshots here remain useful even before that asset is committed. The estimated fraction of occupied CT voxels shown in the infographic should be treated as dataset-specific, not as a general clinical constant.
+A research-context infographic can be added to `docs/images/research-context.png` once its visuals are confirmed to be cleared for publication. The text here remains useful without patient imagery. The estimated fraction of occupied CT voxels shown in the infographic should be treated as dataset-specific, not as a general clinical constant.
 
 ## 2. From source files to aligned CT volumes and masks
 
@@ -50,8 +50,7 @@ The reconstruction work involves:
 
 The repository includes reconstruction and validation-related code in `src/Extract/`, `src/Factory/MaskRebuilder/` and `src/Factory/dataset/`.
 
-![Raw CT slice](report_streamlit/assets/ct2_napari.png)
-![Segmentation mask](report_streamlit/assets/ct3_maskGT.png)
+No original CT volumes or segmentation masks are provided for download. Publicly shareable diagrams and non-sensitive summaries can be used to explain the reconstruction method without revealing the source dataset.
 
 ## 3. Exploratory and structural analysis
 
@@ -85,7 +84,7 @@ Its evaluation logic includes a Dice computation and per-class analysis. It also
 | Median Dice | 0.72 |
 | Evaluated samples | 19,980 |
 
-The reported results come from a single model configuration and should be interpreted as exploratory research results. They do not establish clinical performance or generalization to external cohorts.
+The reported results come from a single model configuration and should be interpreted as exploratory research results. They do not establish clinical performance or generalization to external cohorts. Since the underlying CT data is confidential, independent reproduction of the exact numerical results is not possible from this public repository alone.
 
 **Important reproducibility note:** `src/models/Unet CNN/train.py` is empty in the reviewed repository state. The public repository therefore does **not** currently provide a complete verified training entry point or an end-to-end training reproduction command. This distinction matters and should be resolved before claiming full reproducibility.
 
@@ -131,13 +130,19 @@ On Windows PowerShell, activate the virtual environment with `.venv\Scripts\Acti
 - Only one model configuration has been evaluated in the presented experiment.
 - Model performance varies considerably across cases and anatomical structures.
 - The limited dataset and extreme imbalance make generalization difficult.
-- Split-generation and training reproduction need to be documented in the repository.
+- The patient-level split procedure needs a public, data-free validation example; exact result reproduction requires restricted source data.
 - Further studies should compare ROI definitions, sampling strategies, model architectures and spatial contexts.
 - Evaluation could be extended to volume-level metrics and boundary-distance metrics such as HD95.
 
-## 9. Responsible use and provenance
+## 9. Confidential data and reproducibility
 
-This repository describes an experimental research project, not medical advice or diagnostic software. The origin, permissions and redistribution conditions of the underlying CT data should be documented before publishing any additional source volumes or patient-level records.
+The original CT volumes, segmentation annotations and patient-level source records are **confidential**. They are not supplied with this repository and must not be requested or redistributed through this project. Their absence is intentional, not a missing setup step.
+
+The code and technical report document the reconstruction, preparation and evaluation methodology. With an independently licensed or synthetic dataset of compatible structure, the processing logic can be studied and tested, but the original experimental results cannot be independently reproduced without authorized access to the restricted data.
+
+For verification without source-data disclosure, the project can add synthetic fixtures, schema descriptions, unit tests for decoding and shape alignment, patient-split disjointness checks, and small synthetic end-to-end examples. Any published figures, screenshots, CSV extracts and metadata should be reviewed against the same confidentiality restrictions.
+
+This is an experimental research project, not medical advice or a clinically validated diagnostic tool.
 
 ## Author
 
