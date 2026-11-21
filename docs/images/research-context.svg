@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="1360" viewBox="0 0 1160 1360"><rect width="1160" height="1360" fill="#ffffff"/><rect x="9" y="9" width="1142" height="74" rx="14" fill="#102f66"/><text x="83" y="58" font-size="37" font-family="Arial, Helvetica, sans-serif" font-weight="700" fill="#ffffff">RESEARCH CONTEXT AND PROBLEM DEFINITION</text>
+<rect x="10" y="96" width="1140" height="210" rx="14" fill="#f6f9ff" stroke="#c9d8eb" stroke-width="2"/>
+<text x="42" y="143" font-size="26" font-family="Arial, Helvetica, sans-serif" font-weight="700" fill="#0d3370">THE PROBLEM</text>
+<text x="42" y="184" font-size="23" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b">Fetal CT data is rare and clinically constrained. The project examines</text>
+<text x="42" y="219" font-size="23" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b">how tiny and irregular ossification centers can be reconstructed,</text>
+<text x="42" y="254" font-size="23" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b">analyzed and segmented from heterogeneous CT volumes and masks.</text>
+<rect x="10" y="323" width="558" height="395" rx="14" fill="#faf7ff" stroke="#dacbf4" stroke-width="2"/><rect x="580" y="323" width="570" height="395" rx="14" fill="#f6f9ff" stroke="#c9d8eb" stroke-width="2"/>
+<text x="34" y="366" font-size="24" font-family="Arial, Helvetica, sans-serif" font-weight="700" fill="#6635a5">1. CLINICAL CONSTRAINTS</text>
+<text x="34" y="412" font-size="20" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b">CT uses ionizing radiation. During pregnancy,</text>
+<text x="34" y="446" font-size="20" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b">it is used only when clinically justified.</text>
+<text x="34" y="480" font-size="20" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b"></text>
+<text x="34" y="514" font-size="20" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b">Medical and ethical considerations restrict</text>
+<text x="34" y="548" font-size="20" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b">access to the source data. These cases are</text>
+<text x="34" y="582" font-size="20" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b">uncommon and need careful interpretation.</text>
+<text x="34" y="616" font-size="20" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b"></text>
+<text x="34" y="650" font-size="20" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b">The original CT dataset is confidential.</text>
+<text x="604" y="366" font-size="23" font-family="Arial, Helvetica, sans-serif" font-weight="700" fill="#163d82">2. LIMITED DATA AVAILABILITY</text>
+<text x="604" y="412" font-size="20" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b">The number of available scans is limited.</text>
+<text x="604" y="446" font-size="20" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b"></text>
+<text x="604" y="480" font-size="20" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b">Access requires medical and institutional</text>
+<text x="604" y="514" font-size="20" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b">authorization, with privacy safeguards.</text>
+<text x="604" y="548" font-size="20" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b"></text>
+<text x="604" y="582" font-size="20" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b">Cases may be non-standard and may contain</text>
+<text x="604" y="616" font-size="20" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b">substantial anatomical variability.</text>
+<text x="604" y="650" font-size="20" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b"></text>
+<text x="604" y="684" font-size="20" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b">Public project material does not include raw scans.</text>
+<rect x="10" y="734" width="1140" height="438" rx="14" fill="#fffaf1" stroke="#eed7ac" stroke-width="2"/>
+<text x="32" y="783" font-size="29" font-family="Arial, Helvetica, sans-serif" font-weight="700" fill="#8e5a08">3. COMPUTATIONAL CHALLENGES</text>
+<rect x="33" y="817" width="211" height="296" rx="10" fill="#fff" stroke="#e8d9bd"/><text x="43" y="856" font-size="17" font-family="Arial, Helvetica, sans-serif" font-weight="700" fill="#313b50">TINY TARGETS</text><text x="43" y="905" font-size="16" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b">Ossification centers occupy</text>
+<text x="43" y="932" font-size="16" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b">a very small part of the CT volume.</text><circle cx="134" cy="1044" r="8" fill="none" stroke="#af7e30" stroke-width="4"/>
+<rect x="257" y="817" width="211" height="296" rx="10" fill="#fff" stroke="#e8d9bd"/><text x="267" y="856" font-size="17" font-family="Arial, Helvetica, sans-serif" font-weight="700" fill="#313b50">IRREGULAR SHAPES</text><text x="267" y="905" font-size="16" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b">Shapes are complex and</text>
+<text x="267" y="932" font-size="16" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b">not easily approximated.</text><circle cx="358" cy="1044" r="11" fill="none" stroke="#af7e30" stroke-width="4"/>
+<rect x="481" y="817" width="211" height="296" rx="10" fill="#fff" stroke="#e8d9bd"/><text x="491" y="856" font-size="15" font-family="Arial, Helvetica, sans-serif" font-weight="700" fill="#313b50">DEVELOPMENTAL VARIATION</text><text x="491" y="905" font-size="16" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b">Appearance and size change</text>
+<text x="491" y="932" font-size="16" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b">with gestational age.</text><circle cx="582" cy="1044" r="14" fill="none" stroke="#af7e30" stroke-width="4"/>
+<rect x="705" y="817" width="211" height="296" rx="10" fill="#fff" stroke="#e8d9bd"/><text x="715" y="856" font-size="17" font-family="Arial, Helvetica, sans-serif" font-weight="700" fill="#313b50">SLICE VARIABILITY</text><text x="715" y="905" font-size="16" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b">Structures may appear or</text>
+<text x="715" y="932" font-size="16" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b">disappear between slices.</text><circle cx="806" cy="1044" r="17" fill="none" stroke="#af7e30" stroke-width="4"/>
+<rect x="929" y="817" width="211" height="296" rx="10" fill="#fff" stroke="#e8d9bd"/><text x="939" y="856" font-size="17" font-family="Arial, Helvetica, sans-serif" font-weight="700" fill="#313b50">LOW CONTRAST</text><text x="939" y="905" font-size="16" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b">Boundaries can be subtle</text>
+<text x="939" y="932" font-size="16" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b">and difficult to distinguish.</text><circle cx="1030" cy="1044" r="20" fill="none" stroke="#af7e30" stroke-width="4"/>
+<text x="39" y="1148" font-size="22" font-family="Arial, Helvetica, sans-serif" font-weight="700" fill="#895700">Together these factors make reliable segmentation particularly difficult.</text>
+<rect x="10" y="1188" width="1140" height="150" rx="14" fill="#f2fbf3" stroke="#c3dfca" stroke-width="2"/>
+<text x="37" y="1232" font-size="26" font-family="Arial, Helvetica, sans-serif" font-weight="700" fill="#207743">SUMMARY</text>
+<text x="37" y="1273" font-size="21" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b">A constrained dataset, sparse targets and variable anatomy demand careful data</text>
+<text x="37" y="1305" font-size="21" font-family="Arial, Helvetica, sans-serif" font-weight="400" fill="#21334b">reconstruction, spatial analysis, ROI extraction, and patient-level evaluation.</text>
+</svg>

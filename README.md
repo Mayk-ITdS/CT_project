@@ -27,6 +27,10 @@ The results are taken from the accompanying technical report. The number of eval
 
 ## 1. Research context and problem
 
+![Research context infographic](docs/images/research-context.svg)
+
+*Overview of the clinical, data availability and computational constraints. This diagram summarizes the research context and does not contain patient data.*
+
 Fetal CT data is rare and difficult to access because of clinical and ethical constraints. The anatomical structures of interest are very small, irregular, variable across development and often difficult to distinguish from surrounding tissues.
 
 This creates several problems at once:
@@ -43,7 +47,7 @@ The research context is summarized in three dimensions:
 |---|---|---|
 | CT examinations during pregnancy are uncommon and clinically justified only in specific circumstances. | Access to the underlying scans is restricted and the available cohort is small. | Targets are tiny, irregular and spatially variable, with substantial foreground/background imbalance. |
 
-The project's research-context infographic estimates the ossification-center fraction of CT volume at approximately 0.01%. This is a dataset-specific figure, not a general clinical constant.
+The project examines exceptionally sparse segmentation targets. The approximately 0.01% figure in the research infographic is dataset-specific and should not be generalized to other cohorts. For a closer look at the research context, see [Research Context](docs/RESEARCH_CONTEXT.md).
 
 ## 2. From source files to aligned CT volumes and masks
 
